@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   title: "SHINE Salon EMR",
   description: "脱毛サロン向け 電子カルテ＆店舗管理システム",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon.jpg",
+    apple: "/icon.jpg",
   },
   appleWebApp: {
     title: "SHINE",
