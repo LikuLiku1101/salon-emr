@@ -16,12 +16,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SHINE Salon EMR",
   description: "脱毛サロン向け 電子カルテ＆店舗管理システム",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
   appleWebApp: {
     title: "SHINE",
     statusBarStyle: "black-translucent",
     capable: true,
   },
-  manifest: "/manifest.json", // manifest.ts will be reachable via this path in Next.js
+  manifest: "/manifest.json",
 };
 
 export const viewport = {
