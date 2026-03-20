@@ -36,7 +36,7 @@ export function MainNav() {
                 }`}
               >
                 <Icon className="h-4 w-4" />
-                <span>{item.name}</span>
+                <span className="hidden md:inline">{item.name}</span>
               </Link>
             );
           })}

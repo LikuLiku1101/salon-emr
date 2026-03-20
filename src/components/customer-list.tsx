@@ -58,9 +58,9 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
         <Table>
           <TableHeader className="bg-gray-50">
             <TableRow>
-              <TableHead className="font-bold">お名前 / フリガナ</TableHead>
-              <TableHead className="font-bold">契約状況</TableHead>
-              <TableHead className="text-right font-bold">操作</TableHead>
+              <TableHead className="font-bold px-2 sm:px-4">お名前</TableHead>
+              <TableHead className="font-bold px-2 sm:px-4">契約状況</TableHead>
+              <TableHead className="text-right font-bold px-2 sm:px-4">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -85,17 +85,22 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
 
                   if (isCompleted) {
                     statusBadge = (
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 border-gray-200">
-                        {displayContract.course_name} ({total}回消化済み)
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-700 leading-tight">
+                          {displayContract.course_name}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium">
+                          ({total}回消化済み)
+                        </span>
+                      </div>
                     );
                   } else {
                     statusBadge = (
                       <div className="flex flex-col gap-1">
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold bg-[var(--salon-teal)]/10 text-[var(--salon-teal-dark)] border-[var(--salon-teal)]/20 w-fit">
+                        <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold bg-[var(--salon-teal)]/10 text-[var(--salon-teal-dark)] border-[var(--salon-teal)]/20 w-fit leading-tight">
                           {displayContract.course_name}
                         </span>
-                        <span className="text-[10px] font-bold text-[var(--salon-purple)] ml-1">
+                        <span className="text-[10px] font-bold text-[var(--salon-purple)]">
                           残り {total - usedCount} 回 / {total}回中
                         </span>
                       </div>
@@ -105,20 +110,20 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
 
                 return (
                   <TableRow key={c.id} className="hover:bg-gray-50/50">
-                    <TableCell>
-                      <div className="font-black text-gray-800">{c.name}</div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                    <TableCell className="px-2 sm:px-4">
+                      <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
+                      <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-tight">
                         {c.name_kana || "-"}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-2 sm:px-4">
                       {statusBadge}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right px-2 sm:px-4">
                       <Link href={`/customers/${c.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 hover:bg-[var(--salon-purple)]/5 hover:text-[var(--salon-purple)] font-bold">
-                          <FileText className="h-4 w-4 mr-2" />
-                          詳細/カルテ
+                        <Button variant="ghost" size="sm" className="h-8 w-8 sm:w-auto sm:px-3 hover:bg-[var(--salon-purple)]/5 hover:text-[var(--salon-purple)] font-bold">
+                          <FileText className="h-4 w-4 sm:mr-2 shrink-0" />
+                          <span className="hidden sm:inline">詳細/カルテ</span>
                         </Button>
                       </Link>
                     </TableCell>

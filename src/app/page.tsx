@@ -24,11 +24,11 @@ export default async function Dashboard() {
     .order("visit_time", { ascending: true });
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
       <header className="flex items-center justify-between border-b pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">ダッシュボード</h1>
-          <p className="text-muted-foreground mt-2" suppressHydrationWarning>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">ダッシュボード</h1>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base font-bold" suppressHydrationWarning>
             今日（{format(new Date(), "yyyy年MM月dd日(E)", { locale: ja })}）の営業状況
           </p>
         </div>
