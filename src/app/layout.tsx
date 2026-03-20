@@ -18,9 +18,10 @@ export const metadata: Metadata = {
   description: "脱毛サロン向け 電子カルテ＆店舗管理システム",
   appleWebApp: {
     title: "SHINE",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     capable: true,
   },
+  manifest: "/manifest.json", // manifest.ts will be reachable via this path in Next.js
 };
 
 export const viewport = {
