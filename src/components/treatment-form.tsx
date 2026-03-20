@@ -29,7 +29,9 @@ import {
   UploadCloud,
   X,
   ImageIcon,
-  Trash2
+  Trash2,
+  ChevronRight,
+  Calendar
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -433,98 +435,144 @@ export default function TreatmentForm({
 
       <div className="px-4 py-6 space-y-8">
         
-        {/* ヘッダーエリア */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              <Link href={`/customers/${treatment.customer_id}`} className="hover:underline hover:text-[var(--salon-purple)] transition-colors">
-                {treatment.customers?.name} <span className="text-base font-normal text-gray-500">様</span>
-              </Link>
-            </h1>
-            <div className="flex gap-2 text-xs sm:text-sm font-medium">
-              <span className="bg-[var(--salon-teal)]/10 text-[var(--salon-teal-dark)] px-2 py-0.5 rounded-sm shrink-0">
-                来店回数: {visitInfo.totalVisitsCount}回
-              </span>
-              {visitInfo.lastVisitDate && (
-                <Link 
-                  href={`/treatments/${visitInfo.lastVisitId}`}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-0.5 rounded-sm flex items-center gap-1 transition-colors border border-gray-200 shrink-0"
-                >
-                  前回来店: {format(new Date(visitInfo.lastVisitDate), "M月d日(E)", { locale: ja })}
-                  <span className="text-[10px] text-gray-400">→</span>
-                </Link>
-              )}
-              {visitInfo.contractVisitCount !== null && visitInfo.contractName && visitInfo.contractInstallments && (
-                <span className="bg-[var(--salon-purple)]/10 text-[var(--salon-purple)] px-2 py-0.5 rounded-sm line-clamp-1">
-                  {visitInfo.contractName}: {visitInfo.contractInstallments}回のうち {visitInfo.contractVisitCount}回目
+        {/* 顧客・来店概要カード */}
+        <div className="bg-[var(--salon-purple)]/[0.03] border border-[var(--salon-purple)]/10 rounded-2xl p-5 space-y-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center flex-wrap gap-3">
+                <h1 className="text-2xl font-black tracking-tight text-gray-900 group">
+                  <Link href={`/customers/${treatment.customer_id}`} className="hover:text-[var(--salon-purple)] transition-colors flex items-center gap-1">
+                    {treatment.customers?.name} 
+                    <span className="text-sm font-normal text-gray-400">様</span>
+                    <ChevronRight className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </h1>
+                <span className="bg-white border text-[10px] font-bold text-gray-400 px-2 py-0.5 rounded-full shadow-sm">
+                  カルテ: {treatment.id.substring(0, 8)}
                 </span>
-              )}
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                <span className="bg-white border border-[var(--salon-teal)]/20 text-[var(--salon-teal-dark)] px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                  <Activity className="w-3 h-3" />
+                  来店: {visitInfo.totalVisitsCount}回目
+                </span>
+                {visitInfo.lastVisitDate && (
+                  <Link 
+                    href={`/treatments/${visitInfo.lastVisitId}`}
+                    className="bg-white border border-gray-200 text-gray-500 px-2.5 py-1 rounded-lg flex items-center gap-1 hover:bg-gray-50 transition-colors shadow-sm"
+                  >
+                    前回: {format(new Date(visitInfo.lastVisitDate), "M/d")}
+                  </Link>
+                )}
+                {visitInfo.contractVisitCount !== null && visitInfo.contractName && (
+                  <span className="bg-white border border-[var(--salon-purple)]/20 text-[var(--salon-purple)] px-2.5 py-1 rounded-lg shadow-sm">
+                    {visitInfo.contractName} ({visitInfo.contractVisitCount}/{visitInfo.contractInstallments ?? "-"})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start sm:items-end gap-1 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">施術日</span>
+              <div className="text-2xl font-black text-gray-900 tabular-nums">
+                {currentVisitDate ? format(visitDate, "yyyy.MM.dd", { locale: ja }) : "--"}
+              </div>
             </div>
           </div>
-          <div className="text-right flex flex-col items-end gap-3">
-            {/* 1. 日付表示 */}
-            <div className="text-xl font-bold tracking-tight text-gray-900">
-              {currentVisitDate ? format(visitDate, "yyyy年 M月d日", { locale: ja }) : "日付未設定"}
-            </div>
-            
-            {/* 2. 日付変更ボタンと入力ボックス */}
-            <div className="flex flex-col items-end gap-2">
-              <Button 
-                type="button"
-                onClick={() => setShowDatePicker(!showDatePicker)}
-                size="sm" 
-                className="text-xs h-7 px-4 bg-[var(--salon-yellow)] hover:bg-[#e6ae1b] text-black font-bold rounded-md shadow-sm border-0"
-              >
-                日付を変更する
-              </Button>
-              {showDatePicker && (
-                <Input 
-                  type="date" 
-                  value={currentVisitDate}
-                  onChange={(e) => setCurrentVisitDate(e.target.value)}
-                  className="h-9 w-40 bg-white border-2 border-[var(--salon-yellow)]"
-                />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5 border-t border-[var(--salon-purple)]/5">
+            {/* 担当者 */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                <User className="w-3.5 h-3.5" />
+                担当スタッフ
+              </Label>
+              {isEditMode ? (
+                <div className="relative">
+                  <select
+                    value={staffId || "280b61fe-3b23-44ab-91d0-08916f07c88f"}
+                    onChange={(e) => setStaffId(e.target.value)}
+                    className="h-11 w-full bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 px-4 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
+                  >
+                    <option value="280b61fe-3b23-44ab-91d0-08916f07c88f">大谷</option>
+                    <option value="377e02bb-7aea-4eb7-9328-ee9d57ec85e1">須原</option>
+                    {staffList.filter(s => s.name !== '大谷' && s.name !== '須原' && s.name !== '未定').map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800">
+                  {staffList.find(s => s.id === staffId)?.name || "未設定"}
+                </div>
               )}
             </div>
 
-            {/* 3. 担当者選択 */}
-            <div className="flex items-center gap-2 mt-1">
-              <Label className="text-sm font-bold text-gray-600">担当者：</Label>
-              {isEditMode ? (
-                <select
-                  value={staffId || "280b61fe-3b23-44ab-91d0-08916f07c88f"}
-                  onChange={(e) => setStaffId(e.target.value)}
-                  className="h-9 w-32 bg-gray-100 border border-gray-200 rounded-lg text-sm font-black text-gray-800 px-2 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all font-sans cursor-pointer hover:bg-gray-200"
+            {/* 日付変更 */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                 <Calendar className="w-3.5 h-3.5" />
+                日付の変更
+              </Label>
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  variant="outline"
+                  className={cn(
+                    "h-11 flex-1 font-bold text-xs rounded-xl shadow-sm border-gray-200",
+                    showDatePicker && "border-[var(--salon-yellow)] bg-[var(--salon-yellow)]/5 text-[var(--salon-yellow-dark)]"
+                  )}
                 >
-                  <option value="280b61fe-3b23-44ab-91d0-08916f07c88f">大谷</option>
-                  <option value="377e02bb-7aea-4eb7-9328-ee9d57ec85e1">須原</option>
-                  {staffList.filter(s => s.name !== '大谷' && s.name !== '須原' && s.name !== '未定').map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className="text-sm font-black text-gray-800 bg-gray-100 px-3 py-1 rounded-md">
-                  {staffList.find(s => s.id === staffId)?.name || "未設定"}
-                </span>
-              )}
+                  カレンダーを表示
+                </Button>
+                {showDatePicker && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm sm:relative sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none" onClick={() => setShowDatePicker(false)}>
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl border flex flex-col gap-4 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                       <Label className="font-bold text-gray-700">新しい日付を選択</Label>
+                       <Input 
+                        type="date" 
+                        value={currentVisitDate}
+                        onChange={(e) => {
+                          setCurrentVisitDate(e.target.value);
+                          setShowDatePicker(false);
+                        }}
+                        className="h-12 w-64 bg-white border-2 border-[var(--salon-purple)] text-lg font-bold"
+                      />
+                      <Button size="sm" variant="ghost" className="text-gray-400" onClick={() => setShowDatePicker(false)}>閉じる</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* 来店ステータス選択 */}
         <div className="flex flex-col gap-4">
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between gap-4">
+            <div className="bg-white px-5 py-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-2">
-                    <Activity className={cn("w-5 h-5", status === "キャンセル" ? "text-red-500" : "text-[var(--salon-purple)]")} />
-                    <span className="font-bold text-gray-700">来店ステータス:</span>
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center",
+                      status === "キャンセル" ? "bg-red-50 text-red-500" : "bg-[var(--salon-purple)]/10 text-[var(--salon-purple)]"
+                    )}>
+                      <Activity className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Status</span>
+                      <span className="font-bold text-gray-700">来店ステータス</span>
+                    </div>
                 </div>
-                <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+                <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100 w-full sm:w-auto">
                     <button 
                       type="button"
                       onClick={() => setStatus("通常")}
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                        status === "通常" ? "bg-[var(--salon-purple)] text-white" : "text-gray-400 hover:text-gray-600"
+                        "flex-1 sm:flex-none sm:px-8 py-2.5 rounded-lg text-xs font-black transition-all shadow-sm",
+                        status === "通常" ? "bg-[var(--salon-purple)] text-white" : "text-gray-400 hover:text-gray-600 bg-transparent shadow-none"
                       )}
                     >
                         通常施術
@@ -533,8 +581,8 @@ export default function TreatmentForm({
                       type="button"
                       onClick={() => setStatus("キャンセル")}
                       className={cn(
-                        "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                        status === "キャンセル" ? "bg-red-500 text-white" : "text-gray-400 hover:text-red-400"
+                        "flex-1 sm:flex-none sm:px-8 py-2.5 rounded-lg text-xs font-black transition-all shadow-sm",
+                        status === "キャンセル" ? "bg-red-500 text-white" : "text-gray-400 hover:text-red-400 bg-transparent shadow-none"
                       )}
                     >
                         キャンセル
