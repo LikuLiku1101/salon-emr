@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -33,6 +34,7 @@ interface Customer {
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   const filteredCustomers = customers.filter(c => 
     c.name.includes(searchQuery) || 
@@ -109,7 +111,11 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                 }
 
                 return (
-                  <TableRow key={c.id} className="hover:bg-gray-50/50">
+                  <TableRow 
+                    key={c.id} 
+                    className="hover:bg-gray-50/50 cursor-pointer"
+                    onClick={() => router.push(`/customers/${c.id}`)}
+                  >
                     <TableCell className="px-2 sm:px-4">
                       <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
                       <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-tight">

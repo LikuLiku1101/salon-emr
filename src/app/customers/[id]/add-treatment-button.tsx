@@ -5,8 +5,15 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createDetailedTreatment } from "@/app/treatments/new/actions";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export default function AddTreatmentSheetButton({ customerId }: { customerId: string }) {
+export default function AddTreatmentSheetButton({ 
+  customerId,
+  className
+}: { 
+  customerId: string;
+  className?: string;
+}) {
   const [isPending, setIsPending] = useState(false);
 
   const handleClick = async () => {
@@ -25,7 +32,7 @@ export default function AddTreatmentSheetButton({ customerId }: { customerId: st
       size="sm" 
       disabled={isPending}
       onClick={handleClick}
-      className="h-10 px-4 font-bold bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white"
+      className={cn("h-10 px-4 font-bold bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white", className)}
     >
       <Plus className="w-4 h-4 mr-2" />
       {isPending ? "作成中..." : "施術シートを追加"}

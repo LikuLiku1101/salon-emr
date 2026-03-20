@@ -6,15 +6,18 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { deleteCustomer } from "./actions";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface DeleteCustomerButtonProps {
   customerId: string;
   customerName: string;
+  className?: string;
 }
 
 export default function DeleteCustomerButton({ 
   customerId, 
-  customerName 
+  customerName,
+  className
 }: DeleteCustomerButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
@@ -47,7 +50,7 @@ export default function DeleteCustomerButton({
       size="sm" 
       disabled={isDeleting}
       onClick={handleDelete}
-      className="h-10 px-4 font-bold border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+      className={cn("h-10 px-4 font-bold border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors", className)}
     >
       <Trash2 className="w-4 h-4 mr-2" />
       この顧客を削除

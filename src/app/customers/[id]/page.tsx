@@ -28,10 +28,10 @@ import {
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import DeleteTreatmentButton from "./delete-button";
 import DeleteCustomerButton from "./delete-customer-button";
 import AddTreatmentSheetButton from "./add-treatment-button";
 import DeleteContractButton from "./delete-contract-button";
+import VisitHistoryList from "./visit-history-list";
 
 export default async function CustomerDetailPage({
   params,
@@ -129,13 +129,13 @@ export default async function CustomerDetailPage({
             </div>
         </div>
 
-        <div className="flex items-center gap-2">
-            <DeleteCustomerButton customerId={id} customerName={customer.name} />
-            <Button size="sm" variant="outline" className="h-10 px-4 font-bold border-gray-300">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <DeleteCustomerButton customerId={id} customerName={customer.name} className="w-full sm:w-auto order-2 sm:order-1" />
+            <Button size="sm" variant="outline" className="h-10 px-4 font-bold border-gray-300 w-full sm:w-auto order-3 sm:order-2">
                 <Smartphone className="w-4 h-4 mr-2" />
                 LINE連携
             </Button>
-            <AddTreatmentSheetButton customerId={id} />
+            <AddTreatmentSheetButton customerId={id} className="w-full sm:w-auto col-span-2 sm:col-span-1 order-1 sm:order-3" />
         </div>
       </header>
 
@@ -267,106 +267,10 @@ export default async function CustomerDetailPage({
             </span>
         </div>
 
-        <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader className="bg-gray-50">
-              <TableRow>
-                <TableHead className="font-bold w-[120px]">来店日時</TableHead>
-                <TableHead className="font-bold">内容・部位</TableHead>
-                <TableHead className="font-bold w-[130px]">お会計</TableHead>
-                <TableHead className="font-bold w-[80px]">担当</TableHead>
-                <TableHead className="text-right font-bold w-[100px]">詳細</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pastTreatments.length > 0 ? (
-                pastTreatments.map((t) => (
-                  <TableRow key={t.id} className="hover:bg-gray-50/50">
-                    <TableCell>
-                      <div className="font-black text-gray-800">
-                        {format(new Date(t.visit_date), "yyyy/MM/dd")}
-                      </div>
-                      <div className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {t.visit_time ? t.visit_time.substring(0, 5) : "--:--"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="space-y-1">
-                            <div className="text-xs font-bold text-[var(--salon-purple)]">
-                                {t.reserved_content}
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                                {t.treatment_details && t.treatment_details.length > 0 ? (
-                                t.treatment_details.map((d: any, idx: number) => (
-                                    <Badge key={idx} variant="secondary" className="px-1.5 py-0 text-[10px] h-4 bg-gray-100 text-gray-600 border-none font-bold">
-                                    {d.body_part}
-                                    </Badge>
-                                ))
-                                ) : (
-                                <span className="text-[10px] text-gray-400 italic font-medium">詳細部位の入力なし</span>
-                                )}
-                            </div>
-                        </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="flex flex-col gap-1">
-                            {t.payment_status === '本日一括支払い' ? (
-                                <Badge className="bg-[var(--salon-purple)] text-white text-[9px] h-4 px-1 leading-none font-bold">
-                                    本日一括
-                                </Badge>
-                            ) : t.payment_status === '一括支払い済み' ? (
-                                <Badge variant="outline" className="text-[var(--salon-teal-dark)] border-[var(--salon-teal)] bg-[var(--salon-teal)]/5 text-[9px] h-4 px-1 leading-none font-bold">
-                                    一括消化
-                                </Badge>
-                            ) : t.payment_status === '都度' ? (
-                                <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 text-[9px] h-4 px-1 leading-none font-bold">
-                                    都度払い
-                                </Badge>
-                            ) : (
-                                <span className="text-[10px] text-gray-400 font-bold">未入力</span>
-                            )}
-                            {t.payment_amount ? (
-                                <span className="text-[11px] font-black text-gray-700">¥{t.payment_amount.toLocaleString()}</span>
-                            ) : (
-                                t.payment_status === '一括支払い済み' && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">DIGEST</span>
-                            )}
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-gray-600 font-bold">
-                        <div className="flex flex-col">
-                            <span>{(t.staff as any)?.name || "未定"}</span>
-                            <span className="text-[9px] text-[var(--salon-teal-dark)] bg-[var(--salon-teal)]/10 px-1 rounded-sm w-fit leading-none mt-1 py-0.5">
-                                {t.visit_count}回目
-                            </span>
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                            <DeleteTreatmentButton 
-                                treatmentId={t.id} 
-                                customerId={id} 
-                                visitDate={format(new Date(t.visit_date), "yyyy/MM/dd")} 
-                            />
-                            <Link href={`/treatments/${t.id}`}>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[var(--salon-purple)]/5 hover:text-[var(--salon-purple)]">
-                                    <ChevronRight className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-bold">
-                    来店履歴はまだありません。
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <VisitHistoryList 
+          treatments={pastTreatments} 
+          customerId={id} 
+        />
       </section>
     </div>
   );
