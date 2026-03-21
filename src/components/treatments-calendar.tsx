@@ -181,6 +181,21 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     );
   };
 
+  // カスタムイベントコンポーネント
+  const CustomEvent = ({ event }: { event: any }) => {
+    const name = event.resource?.customers?.name || "登録なし";
+    // モバイル時は名字のみ表示（スペースで分割）
+    const lastName = name.split(/[ 　]/)[0];
+    const displayContent = event.title.split('\n')[1] || "";
+
+    return (
+      <div className="rbc-event-custom-content">
+        <span className="event-name">{lastName}</span>
+        <span className="event-details">{displayContent}</span>
+      </div>
+    );
+  };
+
   // 2. カスタムツールバー（横並び + 凡例）
   const CustomToolbar = (toolbar: any) => {
     const goToBack = () => toolbar.onNavigate('PREV');
@@ -249,10 +264,56 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         
         .rbc-off-range-bg { background-color: #fafafa !important; }
         .rbc-today { background-color: rgba(149, 21, 179, 0.03) !important; }
-        .rbc-event { min-height: 32px; margin-bottom: 2px; }
+        .rbc-event { min-height: 24px; margin-bottom: 2px; border-radius: 6px !important; }
         .rbc-event-label { display: none; }
-        .rbc-event-content { white-space: pre-line; line-height: 1.1; }
+        .rbc-event-content { padding: 0 !important; height: 100%; }
         .rbc-date-cell { padding: 0 !important; }
+        
+        /* モバイル用の縦書き設定 */
+        @media (max-width: 639px) {
+          .rbc-event { 
+            height: auto !important;
+            min-height: 60px;
+            margin: 1px 0 !important;
+          }
+          .rbc-event-custom-content {
+            display: flex;
+            flex-direction: column;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            height: 100%;
+            padding: 4px 2px;
+            gap: 2px;
+            align-items: center;
+          }
+          .event-name {
+            font-size: 0.65rem;
+            line-height: 1;
+            font-weight: 900;
+          }
+          .event-details {
+            font-size: 0.5rem;
+            opacity: 0.8;
+            font-weight: 400;
+          }
+        }
+
+        /* デスクトップ用 */
+        @media (min-width: 640px) {
+          .rbc-event-custom-content {
+            display: flex;
+            flex-direction: column;
+            padding: 2px 4px;
+          }
+          .event-name {
+            font-size: 0.7rem;
+            font-weight: 800;
+          }
+          .event-details {
+            font-size: 0.6rem;
+            opacity: 0.7;
+          }
+        }
         
         .rbc-toolbar { display: none; } /* デフォルトのツールバーを隠す */
         
@@ -275,6 +336,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         dayPropGetter={dayPropGetter}
         components={{
           toolbar: CustomToolbar,
+          event: CustomEvent,
           month: {
             dateHeader: CustomDateHeader
           }
