@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Calendar, dateFnsLocalizer, View, Views } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import * as JapaneseHolidays from "japanese-holidays";
 import { cn } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -25,9 +25,15 @@ const localizer = dateFnsLocalizer({
 
 export default function TreatmentsCalendar({ treatments }: { treatments: any[] }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
+
+  // Reset loading state when the page changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [pathname]);
 
   // Supabaseのデータをカレンダー用のイベント形式（開始・終了時間など）に変換
   const events = useMemo(() => {
