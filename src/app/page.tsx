@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { LoadingLink } from "@/components/loading-link";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -38,20 +39,20 @@ export default async function Dashboard() {
 
       {/* クイックアクションボタン */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link href="/treatments/new-sheet" className="group">
+        <LoadingLink href="/treatments/new-sheet" className="group">
           <div className="h-24 sm:h-32 bg-[var(--salon-purple)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-purple-200 hover:shadow-purple-300 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
             <Sparkles className="absolute -right-2 -top-2 w-16 h-16 opacity-10 group-hover:scale-110 transition-transform" />
             <FilePlus className="w-6 h-6 sm:w-8 sm:h-8" />
             <span className="text-base sm:text-xl font-black">施術シート登録</span>
           </div>
-        </Link>
+        </LoadingLink>
 
-        <Link href="/treatments/new" className="group">
+        <LoadingLink href="/treatments/new" className="group">
           <div className="h-24 sm:h-32 bg-white border-2 border-[var(--salon-purple)] text-[var(--salon-purple)] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md hover:shadow-lg hover:bg-purple-50 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
             <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
             <span className="text-base sm:text-xl font-black">新規予約登録</span>
           </div>
-        </Link>
+        </LoadingLink>
 
         <Link href="/customers/new" className="group">
           <div className="h-24 sm:h-32 bg-[var(--salon-teal)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-teal-100 hover:shadow-teal-200 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
@@ -112,13 +113,13 @@ export default async function Dashboard() {
                     </div>
 
                     <div className="flex items-center justify-end">
-                      <a 
+                      <LoadingLink 
                         href={`/treatments/${t.id}`} 
                         className="inline-flex items-center gap-1.5 bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-all"
                       >
                         カルテ入力
                         <span className="text-lg leading-none">→</span>
-                      </a>
+                      </LoadingLink>
                     </div>
                   </div>
                 </div>

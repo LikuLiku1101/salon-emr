@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import * as JapaneseHolidays from "japanese-holidays";
 import { cn } from "@/lib/utils";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 // 日本語のローカライズ設定
 const locales = {
@@ -24,6 +25,7 @@ const localizer = dateFnsLocalizer({
 
 export default function TreatmentsCalendar({ treatments }: { treatments: any[] }) {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
 
@@ -84,6 +86,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
 
   // カレンダーのイベントをクリックしたときの処理
   const handleSelectEvent = (event: any) => {
+    setIsLoading(true);
     router.push(`/treatments/${event.id}`);
   };
 
@@ -248,7 +251,8 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   };
 
   return (
-    <div className="h-[750px] w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col">
+    <div className="h-[750px] w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative">
+      {isLoading && <LoadingSpinner />}
       <style jsx global>{`
         .rbc-month-view { border-color: var(--color-zinc-100); border-radius: 8px; overflow: hidden; border: none !important; }
         .rbc-month-row { border-top: 1px solid #f1f1f1 !important; }
