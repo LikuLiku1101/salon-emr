@@ -7,8 +7,9 @@ import Link from "next/link";
 export default async function Dashboard() {
   const supabase = await createClient();
 
-  // 今日の日付を取得 (YYYY-MM-DD形式)
-  const today = format(new Date(), "yyyy-MM-dd");
+  // 今日の日付を取得 (JST固定)
+  const todayJst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const today = format(todayJst, "yyyy-MM-dd");
 
   // 本日の予約情報(treatments)を取得する (担当者名、顧客名付き)
   const { data: todayTreatments, error } = await supabase
@@ -30,7 +31,7 @@ export default async function Dashboard() {
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900">ダッシュボード</h1>
           <p className="text-muted-foreground mt-1 text-sm font-bold" suppressHydrationWarning>
-            今日（{format(new Date(), "yyyy年MM月dd日(E)", { locale: ja })}）の営業状況
+            今日（{format(todayJst, "yyyy年MM月dd日(E)", { locale: ja })}）の営業状況
           </p>
         </div>
       </header>
