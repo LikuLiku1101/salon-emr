@@ -129,14 +129,13 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       style: {
         backgroundColor: finalColors.bg,
         color: finalColors.text,
-        borderRadius: "4px",
+        borderRadius: "6px",
         opacity: isPast ? 0.7 : 1,
         border: "none",
-        borderLeft: `4px solid ${finalColors.border}`,
         display: "block",
         fontSize: "0.65rem",
         fontWeight: "900",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
         overflow: "hidden",
       }
     };
