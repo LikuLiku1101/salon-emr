@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, UserPlus, FilePlus, ChevronRight, X, User } from "lucide-react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createDetailedTreatment } from "@/app/treatments/new/actions";
@@ -53,7 +54,8 @@ export default function SheetRegistrationForm({ customers }: { customers: Custom
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20 px-4">
+    <div className="max-w-2xl mx-auto space-y-6 pb-20 px-4 relative">
+      {isPending && <LoadingSpinner />}
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-black text-[var(--salon-purple)]">施術シート登録</h1>
         <p className="text-sm text-gray-500 font-bold">どのお客様の施術シートを作成しますか？</p>

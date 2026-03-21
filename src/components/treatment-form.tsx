@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -432,6 +433,8 @@ export default function TreatmentForm({
           {isEditMode ? "施術シート入力" : "施術記録（来店履歴）"}
         </span>
       </div>
+
+      {isSubmitting && <LoadingSpinner />}
 
       <div className="px-4 py-6 space-y-8">
         

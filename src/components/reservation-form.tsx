@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { ArrowLeft, Save, Search, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default function ReservationForm({
   staffList: Staff[],
   initialCustomerId?: string
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(initialCustomerId ? false : true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId || "");
@@ -46,7 +48,8 @@ export default function ReservationForm({
   ); // 制限を解除して全員表示対象にする
 
   return (
-    <div className="p-4 sm:p-8 max-w-2xl mx-auto space-y-8 bg-white min-h-screen">
+    <div className="p-4 sm:p-8 max-w-2xl mx-auto space-y-8 bg-white min-h-screen relative">
+      {isSubmitting && <LoadingSpinner />}
       <header className="space-y-4">
         <Link href="/treatments" className="inline-flex items-center text-sm font-medium text-[var(--salon-purple)] hover:underline">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -86,7 +89,17 @@ export default function ReservationForm({
       </div>
 
       <div className="bg-gray-50 border rounded-xl overflow-hidden shadow-sm">
-        <form action={createReservation} className="p-6 space-y-6">
+        <form 
+          action={async (formData) => {
+            setIsSubmitting(true);
+            try {
+              await createReservation(formData);
+            } finally {
+              setIsSubmitting(false);
+            }
+          }} 
+          className="p-6 space-y-6"
+        >
           <input type="hidden" name="is_new_customer" value={isNewCustomer.toString()} />
           
           <div className="grid grid-cols-1 gap-6">
