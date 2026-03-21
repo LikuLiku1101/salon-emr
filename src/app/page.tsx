@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Calendar, Users, Ban } from "lucide-react";
+import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -25,14 +26,39 @@ export default async function Dashboard() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
-      <header className="flex items-center justify-between border-b pb-6">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">ダッシュボード</h1>
-          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base font-bold" suppressHydrationWarning>
+          <h1 className="text-3xl font-black tracking-tight text-gray-900">ダッシュボード</h1>
+          <p className="text-muted-foreground mt-1 text-sm font-bold" suppressHydrationWarning>
             今日（{format(new Date(), "yyyy年MM月dd日(E)", { locale: ja })}）の営業状況
           </p>
         </div>
       </header>
+
+      {/* クイックアクションボタン */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Link href="/treatments/new-sheet" className="group">
+          <div className="h-24 sm:h-32 bg-[var(--salon-purple)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-purple-200 hover:shadow-purple-300 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
+            <Sparkles className="absolute -right-2 -top-2 w-16 h-16 opacity-10 group-hover:scale-110 transition-transform" />
+            <FilePlus className="w-6 h-6 sm:w-8 sm:h-8" />
+            <span className="text-base sm:text-xl font-black">施術シート登録</span>
+          </div>
+        </Link>
+
+        <Link href="/treatments/new" className="group">
+          <div className="h-24 sm:h-32 bg-white border-2 border-[var(--salon-purple)] text-[var(--salon-purple)] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md hover:shadow-lg hover:bg-purple-50 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
+            <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
+            <span className="text-base sm:text-xl font-black">新規予約登録</span>
+          </div>
+        </Link>
+
+        <Link href="/customers/new" className="group">
+          <div className="h-24 sm:h-32 bg-[var(--salon-teal)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-teal-100 hover:shadow-teal-200 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
+            <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
+            <span className="text-base sm:text-xl font-black">新規顧客登録</span>
+          </div>
+        </Link>
+      </div>
 
 
 
