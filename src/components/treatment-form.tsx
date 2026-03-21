@@ -475,10 +475,11 @@ export default function TreatmentForm({
               </div>
             </div>
 
-            <div className="flex flex-col items-start sm:items-end gap-1 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">施術日</span>
-              <div className="text-2xl font-black text-gray-900 tabular-nums">
-                {currentVisitDate ? format(visitDate, "yyyy.MM.dd", { locale: ja }) : "--"}
+            <div className="flex flex-col items-start sm:items-end gap-1 border-t sm:border-t-0 pt-4 sm:pt-0 border-gray-100 min-w-fit">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">施術日 ・ 開始時間</span>
+              <div className="text-2xl font-black text-gray-900 tabular-nums flex flex-col items-start sm:items-end leading-none">
+                <span>{currentVisitDate ? format(visitDate, "yyyy.MM.dd", { locale: ja }) : "--"}</span>
+                {treatment.visit_time && <span className="text-[var(--salon-purple)] text-xl mt-1">{treatment.visit_time.substring(0, 5)}〜</span>}
               </div>
             </div>
           </div>
