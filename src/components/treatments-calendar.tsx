@@ -268,39 +268,42 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         .rbc-event-content { padding: 0 !important; height: 100%; }
         .rbc-date-cell { padding: 0 !important; }
         
-        /* モバイル用の縦書き設定 */
+        /* モバイル用の横書き・コンパクト設定 */
         @media (max-width: 639px) {
           .rbc-event { 
-            height: auto !important;
-            min-height: 40px;
-            margin: 1px 0 !important;
+            min-height: 18px;
+            margin: 0.5px 0 !important;
+            padding: 0 !important;
           }
           .rbc-event-custom-content {
-            writing-mode: vertical-rl;
-            text-orientation: upright;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 2px;
+            padding: 0px 4px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
             width: 100%;
-            min-height: 40px;
-            padding: 2px 0;
           }
           .event-name-container {
             font-size: 0.65rem;
-            line-height: 1.1;
             font-weight: 900;
+            flex-shrink: 0;
           }
           .event-details-container {
-            font-size: 0.5rem;
+            font-size: 0.55rem;
             opacity: 0.8;
-            font-weight: 600;
-            margin-top: 2px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
 
         /* デスクトップ用 */
         @media (min-width: 640px) {
+          .rbc-event {
+            min-height: 24px;
+          }
           .rbc-event-custom-content {
             display: flex;
             flex-direction: column;
@@ -365,4 +368,5 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     </div>
   );
 }
+
 
