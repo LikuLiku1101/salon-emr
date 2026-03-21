@@ -87,11 +87,26 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     router.push(`/treatments/${event.id}`);
   };
 
-  // スタッフごとのカラー設定
+  // スタッフごとのカラー設定（プレミアムな配色）
   const STAFF_COLORS: Record<string, { bg: string, text: string, border: string }> = {
-    "280b61fe-3b23-44ab-91d0-08916f07c88f": { bg: "#dbeafe", text: "#1e40af", border: "#3b82f6" }, // 大谷: Blue
-    "377e02bb-7aea-4eb7-9328-ee9d57ec85e1": { bg: "#dcfce7", text: "#166534", border: "#10b981" }, // 須原: Green
-    "default": { bg: "#f3e8ff", text: "#6b21a8", border: "#8b5cf6" } // その他: Purple
+    // 大谷: Blue
+    "280b61fe-3b23-44ab-91d0-08916f07c88f": { 
+      bg: "rgba(186, 230, 253, 0.4)", // sky-200/40
+      text: "#0369a1", // sky-700
+      border: "#0ea5e9" // sky-500
+    },
+    // 須原: Teal/Green
+    "377e02bb-7aea-4eb7-9328-ee9d57ec85e1": { 
+      bg: "rgba(187, 247, 208, 0.4)", // green-200/40
+      text: "#15803d", // green-700
+      border: "#22c55e" // green-500
+    },
+    // その他: Purple
+    "default": { 
+      bg: "rgba(233, 213, 255, 0.3)", // purple-200/30
+      text: "#7e22ce", // purple-700
+      border: "#a855f7" // purple-500
+    }
   };
 
   // カレンダーのイベントを見た目のカスタマイズ
@@ -101,19 +116,30 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     const isPast = event.resource?.isPast;
     const isCancelled = event.resource?.status === 'キャンセル';
     
+    // キャンセル時の赤色設定
+    const cancelStyles = {
+      bg: "rgba(254, 226, 226, 0.7)", // red-100/70
+      text: "#b91c1c", // red-700
+      border: "#ef4444" // red-500
+    };
+    
+    const finalColors = isCancelled ? cancelStyles : colors;
+
     return {
       style: {
-        backgroundColor: isCancelled ? "#fef2f2" : colors.bg,
-        color: isCancelled ? "#991b1b" : colors.text,
-        borderRadius: "4px",
-        opacity: isPast ? 0.7 : 1,
+        backgroundColor: finalColors.bg,
+        color: finalColors.text,
+        borderRadius: "6px",
+        opacity: isPast ? 0.6 : 1,
         border: "none",
-        borderLeft: `4px solid ${isCancelled ? "#ef4444" : colors.border}`,
+        borderLeft: `4px solid ${finalColors.border}`,
         display: "block",
-        fontSize: "0.7rem",
-        padding: "2px 4px",
-        fontWeight: "bold",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        fontSize: "0.65rem",
+        padding: "3px 6px",
+        fontWeight: "800",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        transition: "all 0.2s ease",
+        backdropFilter: "blur(4px)",
       }
     };
   };
@@ -155,31 +181,54 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     );
   };
 
-  // 2. カスタムツールバー（横並び）
+  // 2. カスタムツールバー（横並び + 凡例）
   const CustomToolbar = (toolbar: any) => {
     const goToBack = () => toolbar.onNavigate('PREV');
     const goToNext = () => toolbar.onNavigate('NEXT');
     const goToToday = () => toolbar.onNavigate('TODAY');
 
     return (
-      <div className="flex items-center justify-between mb-2 px-1 gap-2 overflow-x-auto no-scrollbar pb-1">
-        {/* ナビゲーション */}
-        <div className="flex bg-gray-100 p-0.5 rounded-lg border shrink-0">
-          <button onClick={goToBack} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95">前</button>
-          <button onClick={goToToday} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95 border-x">今日</button>
-          <button onClick={goToNext} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95">次</button>
+      <div className="flex flex-col gap-3 mb-4 px-1">
+        {/* メインアクション行 */}
+        <div className="flex items-center justify-between gap-2 overflow-x-auto no-scrollbar pb-1">
+          {/* ナビゲーション */}
+          <div className="flex bg-gray-100 p-0.5 rounded-lg border shrink-0">
+            <button onClick={goToBack} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95">前</button>
+            <button onClick={goToToday} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95 border-x">今日</button>
+            <button onClick={goToNext} className="px-3 py-1 text-xs font-bold hover:bg-white rounded-md transition-all active:scale-95">次</button>
+          </div>
+
+          {/* 日付表示 */}
+          <div className="text-sm font-black text-gray-800 tracking-tight whitespace-nowrap">
+            {toolbar.label}
+          </div>
+
+          {/* ビュー切り替え */}
+          <div className="flex bg-gray-100 p-0.5 rounded-lg border shrink-0">
+            <button onClick={() => toolbar.onView('month')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${toolbar.view === 'month' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>月</button>
+            <button onClick={() => toolbar.onView('week')} className={`px-2 py-1 text-xs font-bold rounded-md transition-all border-x ${toolbar.view === 'week' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>週</button>
+            <button onClick={() => toolbar.onView('day')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${toolbar.view === 'day' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>日</button>
+          </div>
         </div>
 
-        {/* 日付表示 */}
-        <div className="text-sm font-black text-gray-800 tracking-tight whitespace-nowrap">
-          {toolbar.label}
-        </div>
-
-        {/* ビュー切り替え */}
-        <div className="flex bg-gray-100 p-0.5 rounded-lg border shrink-0">
-          <button onClick={() => toolbar.onView('month')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${toolbar.view === 'month' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>月</button>
-          <button onClick={() => toolbar.onView('week')} className={`px-2 py-1 text-xs font-bold rounded-md transition-all border-x ${toolbar.view === 'week' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>週</button>
-          <button onClick={() => toolbar.onView('day')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${toolbar.view === 'day' ? 'bg-[var(--salon-purple)] text-white shadow-sm' : 'hover:bg-white text-gray-600'}`}>日</button>
+        {/* 凡例 (Legend) */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-green-200"></div>
+            <span className="text-[10px] font-black text-gray-500">須原</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-sky-500 border-2 border-sky-200"></div>
+            <span className="text-[10px] font-black text-gray-500">大谷</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-red-200"></div>
+            <span className="text-[10px] font-black text-gray-500">キャンセル</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-purple-500 border-2 border-purple-200"></div>
+            <span className="text-[10px] font-black text-gray-500">その他</span>
+          </div>
         </div>
       </div>
     );
