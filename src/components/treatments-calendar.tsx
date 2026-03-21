@@ -91,19 +91,19 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   const STAFF_COLORS: Record<string, { bg: string, text: string, border: string }> = {
     // 大谷: Blue
     "280b61fe-3b23-44ab-91d0-08916f07c88f": { 
-      bg: "rgba(186, 230, 253, 0.4)", // sky-200/40
+      bg: "#e0f2fe", // sky-100
       text: "#0369a1", // sky-700
       border: "#0ea5e9" // sky-500
     },
-    // 須原: Teal/Green
+    // 須原: Teal
     "377e02bb-7aea-4eb7-9328-ee9d57ec85e1": { 
-      bg: "rgba(187, 247, 208, 0.4)", // green-200/40
+      bg: "#f0fdf4", // green-50
       text: "#15803d", // green-700
       border: "#22c55e" // green-500
     },
     // その他: Purple
     "default": { 
-      bg: "rgba(233, 213, 255, 0.3)", // purple-200/30
+      bg: "#f5f3ff", // purple-50
       text: "#7e22ce", // purple-700
       border: "#a855f7" // purple-500
     }
@@ -118,7 +118,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     
     // キャンセル時の赤色設定
     const cancelStyles = {
-      bg: "rgba(254, 226, 226, 0.7)", // red-100/70
+      bg: "#fef2f2", // red-50
       text: "#b91c1c", // red-700
       border: "#ef4444" // red-500
     };
@@ -129,17 +129,15 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       style: {
         backgroundColor: finalColors.bg,
         color: finalColors.text,
-        borderRadius: "6px",
-        opacity: isPast ? 0.6 : 1,
+        borderRadius: "4px",
+        opacity: isPast ? 0.7 : 1,
         border: "none",
         borderLeft: `4px solid ${finalColors.border}`,
         display: "block",
         fontSize: "0.65rem",
-        padding: "3px 6px",
-        fontWeight: "800",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        transition: "all 0.2s ease",
-        backdropFilter: "blur(4px)",
+        fontWeight: "900",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+        overflow: "hidden",
       }
     };
   };
@@ -183,15 +181,16 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
 
   // カスタムイベントコンポーネント
   const CustomEvent = ({ event }: { event: any }) => {
-    const name = event.resource?.customers?.name || "登録なし";
-    // モバイル時は名字のみ表示（スペースで分割）
+    const title = event.title || "";
+    const [name, content] = title.split('\n');
+    
+    // 名字の取得（スペースで区切られている場合）
     const lastName = name.split(/[ 　]/)[0];
-    const displayContent = event.title.split('\n')[1] || "";
 
     return (
       <div className="rbc-event-custom-content">
-        <span className="event-name">{lastName}</span>
-        <span className="event-details">{displayContent}</span>
+        <div className="event-name-container">{lastName}</div>
+        {content && <div className="event-details-container">{content}</div>}
       </div>
     );
   };
@@ -273,28 +272,30 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         @media (max-width: 639px) {
           .rbc-event { 
             height: auto !important;
-            min-height: 60px;
+            min-height: 40px;
             margin: 1px 0 !important;
           }
           .rbc-event-custom-content {
-            display: flex;
-            flex-direction: column;
             writing-mode: vertical-rl;
             text-orientation: upright;
-            height: 100%;
-            padding: 4px 2px;
-            gap: 2px;
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 40px;
+            padding: 2px 0;
           }
-          .event-name {
+          .event-name-container {
             font-size: 0.65rem;
-            line-height: 1;
+            line-height: 1.1;
             font-weight: 900;
           }
-          .event-details {
+          .event-details-container {
             font-size: 0.5rem;
             opacity: 0.8;
-            font-weight: 400;
+            font-weight: 600;
+            margin-top: 2px;
           }
         }
 
@@ -304,14 +305,21 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
             display: flex;
             flex-direction: column;
             padding: 2px 4px;
+            overflow: hidden;
           }
-          .event-name {
+          .event-name-container {
             font-size: 0.7rem;
             font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
-          .event-details {
+          .event-details-container {
             font-size: 0.6rem;
             opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
         
@@ -357,3 +365,4 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     </div>
   );
 }
+
