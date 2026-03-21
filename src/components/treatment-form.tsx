@@ -1231,19 +1231,19 @@ export default function TreatmentForm({
 
           <div className="space-y-5">
             <h3 className="font-bold text-xl border-l-4 border-gray-600 pl-2 text-gray-800">メモと次回予約</h3>
-            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-5 rounded-xl border">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="next_reservation_date" className="font-bold text-gray-700">次回予約日</Label>
-                  <label className="flex items-center gap-1.5 cursor-pointer group">
+                <div className="flex flex-wrap items-center justify-between gap-y-2">
+                  <Label htmlFor="next_reservation_date" className="font-bold text-gray-700 whitespace-nowrap">次回予約日</Label>
+                  <label className="flex items-center gap-1.5 cursor-pointer group bg-white px-2 py-1 rounded-md border shadow-sm">
                     <input 
                       type="checkbox" 
                       name="is_next_reservation_line" 
                       defaultChecked={treatment.is_next_reservation_line}
                       className="w-4 h-4 rounded border-gray-300 text-[#06C755] focus:ring-[#06C755]"
                     />
-                    <span className="text-xs font-bold text-[var(--salon-teal-dark)] flex items-center gap-0.5">
-                      <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                    <span className="text-[10px] sm:text-xs font-bold text-[#06C755] flex items-center gap-0.5">
+                      <MessageCircle className="w-3 h-3 fill-current" />
                       LINEで予約
                     </span>
                   </label>
@@ -1253,7 +1253,7 @@ export default function TreatmentForm({
                   id="next_reservation_date" 
                   name="next_reservation_date" 
                   defaultValue={treatment.next_reservation_date || ""}
-                  className="h-11 bg-white"
+                  className="h-11 bg-white font-medium"
                 />
               </div>
               <div className="space-y-2">
@@ -1263,7 +1263,7 @@ export default function TreatmentForm({
                   id="next_reservation_time" 
                   name="next_reservation_time" 
                   defaultValue={treatment.next_reservation_time || ""}
-                  className="h-11 bg-white"
+                  className="h-11 bg-white font-medium"
                 />
               </div>
             </div>
