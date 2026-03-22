@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { MainNav } from "@/components/main-nav";
+import { createClient } from "@/utils/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,17 +37,31 @@ export const viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // スタッフ名を取得 (email で紐付け)
+  let staffName = user?.email || "";
+  if (user?.email) {
+    const { data: staff } = await supabase
+      .from("staff")
+      .select("name")
+      .eq("email", user.email)
+      .single();
+    if (staff) staffName = staff.name;
+  }
+
   return (
     <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 min-h-screen`}
       >
-        <MainNav />
+        {user && <MainNav staffName={staffName} />}
         <main>{children}</main>
       </body>
     </html>
