@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles } from "lucide-react";
+import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { LoadingLink } from "@/components/loading-link";
 
@@ -90,21 +90,26 @@ export default async function Dashboard() {
                   </div>
 
                   {/* コンテンツエリア */}
-                  <div className="flex-1 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-bold text-gray-900">{t.customers?.name || "登録なし"} 様</h3>
-                        <span className="bg-[var(--salon-teal)]/10 text-[var(--salon-teal-dark)] text-xs font-bold px-2 py-0.5 rounded-full">
+                  <div className="flex-1 px-4 py-3 flex items-center justify-between min-w-0">
+                    <div className="flex flex-col gap-1.5 min-w-0">
+                      {/* 上段: 名前と来店回数 */}
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 truncate">
+                          {t.customers?.name || "登録なし"} 様
+                        </h3>
+                        <span className="shrink-0 bg-[var(--salon-teal)]/10 text-[var(--salon-teal-dark)] text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
                           {t.visit_count}回目
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5" />
+                      
+                      {/* 下段: 担当とメニュー */}
+                      <div className="flex items-center gap-3 text-[11px] sm:text-xs text-gray-500 font-bold whitespace-nowrap overflow-hidden">
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Users className="w-3.5 h-3.5 text-gray-400" />
                           <span>担当: {t.staff?.name || "未定"}</span>
                         </div>
                         { (t.treatment_details?.length > 0 || t.reserved_content) && (
-                          <div className="px-2 py-0.5 bg-gray-100 rounded text-[11px] border border-gray-200 text-gray-600">
+                          <div className="px-1.5 py-0.5 bg-gray-50 rounded border border-gray-100 text-gray-500 truncate">
                             {COURSE_NAMES.includes(t.reserved_content)
                               ? t.reserved_content
                               : (t.treatment_details?.length > 0 
@@ -117,13 +122,13 @@ export default async function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end">
+                    <div className="shrink-0 ml-4">
                       <LoadingLink 
                         href={`/treatments/${t.id}`} 
-                        className="inline-flex items-center gap-1.5 bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition-all"
+                        className="inline-flex items-center justify-center bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white w-24 sm:w-28 py-2.5 rounded-lg font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all gap-1"
                       >
                         カルテ入力
-                        <span className="text-lg leading-none">→</span>
+                        <ChevronRight className="w-4 h-4" />
                       </LoadingLink>
                     </div>
                   </div>
