@@ -32,7 +32,8 @@ import {
   ImageIcon,
   Trash2,
   ChevronRight,
-  Calendar
+  Calendar,
+  Clock
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -260,6 +261,8 @@ export default function TreatmentForm({
     COURSES[treatment.reserved_content] ? [] : (treatment.reserved_content ? treatment.reserved_content.split("、") : [])
   );
 
+  const [visitTime, setVisitTime] = useState(treatment.visit_time ? treatment.visit_time.substring(0, 5) : "");
+
   const visitDate = new Date(currentVisitDate);
 
   // 部位の選択切り替え（出力表の上部にあるボタン）
@@ -479,7 +482,7 @@ export default function TreatmentForm({
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">施術日 ・ 開始時間</span>
               <div className="text-2xl font-black text-gray-900 tabular-nums flex flex-col items-start sm:items-end leading-none">
                 <span>{currentVisitDate ? format(visitDate, "yyyy.MM.dd", { locale: ja }) : "--"}</span>
-                {treatment.visit_time && <span className="text-[var(--salon-purple)] text-xl mt-1">{treatment.visit_time.substring(0, 5)}〜</span>}
+                {visitTime && <span className="text-[var(--salon-purple)] text-xl mt-1">{visitTime.substring(0, 5)}〜</span>}
               </div>
             </div>
           </div>
@@ -552,6 +555,22 @@ export default function TreatmentForm({
                 )}
               </div>
             </div>
+
+            {/* 開始時間の変更 */}
+            {isEditMode && (
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  開始時間の変更
+                </Label>
+                <Input
+                  type="time"
+                  value={visitTime}
+                  onChange={(e) => setVisitTime(e.target.value)}
+                  className="h-11 bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all shadow-sm"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1081,6 +1100,7 @@ export default function TreatmentForm({
           
           {/* フォームの状態を反映するための隠しフィールド */}
           <input type="hidden" name="visit_date" value={currentVisitDate} />
+          <input type="hidden" name="visit_time" value={visitTime} />
           <input type="hidden" name="staff_id" value={staffId} />
           <input 
             type="hidden" 

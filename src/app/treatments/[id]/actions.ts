@@ -105,6 +105,9 @@ export async function saveTreatmentDetails(
     if (latestContract) updateData.contract_id = latestContract.id;
   }
 
+  const visit_time = formData.get("visit_time") as string;
+  if (visit_time) updateData.visit_time = visit_time;
+
   const { error: treatmentError } = await supabase.from("treatments").update(updateData).eq("id", treatmentId);
   if (treatmentError) return { success: false, error: "Failed to update treatment" };
 
