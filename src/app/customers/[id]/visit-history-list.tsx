@@ -14,6 +14,8 @@ interface VisitHistoryListProps {
   customerId: string;
 }
 
+const COURSE_NAMES = ["全身脱毛", "フェイスセット", "VIOセット", "腰から下セット", "首から下セット"];
+
 export default function VisitHistoryList({ treatments, customerId }: VisitHistoryListProps) {
   const router = useRouter();
 
@@ -62,17 +64,20 @@ export default function VisitHistoryList({ treatments, customerId }: VisitHistor
                   <div className="text-xs font-bold text-[var(--salon-purple)]">
                     {t.reserved_content}
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {t.treatment_details && t.treatment_details.length > 0 ? (
-                      t.treatment_details.map((d: any, idx: number) => (
-                        <Badge key={idx} variant="secondary" className="px-1.5 py-0 text-[10px] h-4 bg-gray-100 text-gray-600 border-none font-bold">
-                          {d.body_part}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-gray-400 italic font-medium">なし</span>
-                    )}
-                  </div>
+                  {/* セットコース（全身脱毛など）の場合は部位 badge を隠し、それ以外（ポイント等）のみ表示 */}
+                  {!COURSE_NAMES.includes(t.reserved_content) && (
+                    <div className="flex flex-wrap gap-1">
+                      {t.treatment_details && t.treatment_details.length > 0 ? (
+                        t.treatment_details.map((d: any, idx: number) => (
+                          <Badge key={idx} variant="secondary" className="px-1.5 py-0 text-[10px] h-4 bg-gray-100 text-gray-600 border-none font-bold">
+                            {d.body_part}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-[10px] text-gray-400 italic font-medium">なし</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="px-4 py-3">
@@ -102,9 +107,11 @@ export default function VisitHistoryList({ treatments, customerId }: VisitHistor
               <TableCell className="px-4 py-3 text-gray-600 font-bold">
                 <div className="flex flex-col">
                   <span>{(t.staff as any)?.name || "未定"}</span>
-                  <span className="text-[9px] text-[var(--salon-teal-dark)] bg-[var(--salon-teal)]/10 px-1 rounded-sm w-fit leading-none mt-1 py-0.5">
-                    {t.visit_count}回目
-                  </span>
+                  {t.display_count && (
+                    <span className="text-[9px] text-[var(--salon-teal-dark)] bg-[var(--salon-teal)]/10 px-1 rounded-sm w-fit leading-none mt-1 py-0.5">
+                      {t.display_count}回目
+                    </span>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="px-4 py-3 text-right">

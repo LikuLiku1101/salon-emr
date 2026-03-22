@@ -64,7 +64,7 @@ export default async function CustomerDetailPage({
     .from("treatments")
     .select(`
       id, visit_date, visit_time, visit_count, notes, contract_id,
-      payment_status, payment_method, payment_amount, reserved_content,
+      payment_status, payment_method, payment_amount, reserved_content, status,
       staff:staff_id ( name ),
       treatment_details ( body_part )
     `)
@@ -74,14 +74,33 @@ export default async function CustomerDetailPage({
   // 4. 未来の予約と過去の履歴を分ける (文字列比較で安定化)
   const todayStr = format(new Date(), "yyyy-MM-dd");
   
+  // まず日付の昇順（古い順）に並べ替えて、来店回数を再計算する
+  const allTreatmentsSorted = (treatments || []).sort((a, b) => {
+    const dateComp = a.visit_date.localeCompare(b.visit_date);
+    if (dateComp !== 0) return dateComp;
+    // 同じ日付の場合は時間で比較
+    return (a.visit_time || "").localeCompare(b.visit_time || "");
+  });
+
+  // 来店回数をセット（キャンセル以外をカウント）
+  let count = 0;
+  const treatmentsWithCorrectCount = allTreatmentsSorted.map(t => {
+    if (t.status !== 'キャンセル') {
+      count++;
+      return { ...t, display_count: count };
+    }
+    return { ...t, display_count: null };
+  });
+
   // 未来の予約 (明日以降)
-  const futureReservations = (treatments || [])
+  const futureReservations = treatmentsWithCorrectCount
     .filter(t => t.visit_date > todayStr)
     .sort((a, b) => a.visit_date.localeCompare(b.visit_date));
   
-  // 過去の履歴 (今日を含む)
-  const pastTreatments = (treatments || [])
-    .filter(t => t.visit_date <= todayStr);
+  // 過去の履歴 (今日を含む) - 表示用に降順（新しい順）に戻す
+  const pastTreatments = treatmentsWithCorrectCount
+    .filter(t => t.visit_date <= todayStr)
+    .sort((a, b) => b.visit_date.localeCompare(a.visit_date) || (b.visit_time || "").localeCompare(a.visit_time || ""));
 
   // 5. 各契約ごとの利用回数を計算（未来の予約は含めない）
   const contractUsage = contracts?.map(contract => {
