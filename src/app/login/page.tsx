@@ -36,7 +36,7 @@ export default function LoginPage() {
               <img src="/icon.jpg" alt="SHINE Logo" className="w-full h-full object-contain rounded-xl" />
             </div>
             <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tight text-gray-900">SHINE Salon EMR</h1>
+              <h1 className="text-3xl font-black tracking-tight text-gray-900">SHINE管理</h1>
               <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Login to your account</p>
             </div>
           </div>

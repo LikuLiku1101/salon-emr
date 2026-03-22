@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SHINE Salon EMR",
+  title: "SHINE管理",
   description: "脱毛サロン向け 電子カルテ＆店舗管理システム",
   icons: {
     icon: "/icon.jpg",
