@@ -34,7 +34,7 @@ export default function LoginPage() {
             </div>
             <div className="space-y-1">
               <h1 className="text-3xl font-black tracking-tight text-gray-900">SHINE管理</h1>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Login to your account</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">下記よりログインしてください</p>
             </div>
           </div>
 
