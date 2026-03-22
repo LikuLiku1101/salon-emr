@@ -5,6 +5,8 @@ import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles } from "lucide
 import Link from "next/link";
 import { LoadingLink } from "@/components/loading-link";
 
+const COURSE_NAMES = ["全身脱毛", "フェイスセット", "VIOセット", "腰から下セット", "首から下セット"];
+
 export default async function Dashboard() {
   const supabase = await createClient();
 
@@ -103,9 +105,12 @@ export default async function Dashboard() {
                         </div>
                         { (t.treatment_details?.length > 0 || t.reserved_content) && (
                           <div className="px-2 py-0.5 bg-gray-100 rounded text-[11px] border border-gray-200 text-gray-600">
-                            {t.treatment_details?.length > 0 
-                              ? t.treatment_details.map((d: any) => d.body_part).join("、")
-                              : t.reserved_content
+                            {COURSE_NAMES.includes(t.reserved_content)
+                              ? t.reserved_content
+                              : (t.treatment_details?.length > 0 
+                                  ? t.treatment_details.map((d: any) => d.body_part).join("、")
+                                  : t.reserved_content
+                                )
                             }
                           </div>
                         )}
