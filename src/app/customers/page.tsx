@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LoadingLink } from "@/components/loading-link";
 import CustomerList from "@/components/customer-list";
 
 export default async function CustomersPage() {
@@ -26,12 +27,12 @@ export default async function CustomersPage() {
             登録されているお客様と契約の一覧です。
           </p>
         </div>
-        <Button className="bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 shadow-lg text-white font-black h-12 px-6 rounded-xl w-full sm:w-auto shrink-0">
-          <Link href="/customers/new" className="flex items-center gap-2 text-inherit">
+        <LoadingLink href="/customers/new">
+          <Button className="bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 shadow-lg text-white font-black h-12 px-6 rounded-xl w-full sm:w-auto shrink-0 flex items-center gap-2">
             <Plus className="h-5 w-5" />
             新規顧客登録
-          </Link>
-        </Button>
+          </Button>
+        </LoadingLink>
       </header>
 
       <CustomerList customers={customers as any || []} />

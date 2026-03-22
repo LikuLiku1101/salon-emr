@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, FileText } from "lucide-react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -34,7 +35,14 @@ interface Customer {
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Reset loading state when page changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [pathname]);
 
   const filteredCustomers = customers.filter(c => 
     c.name.includes(searchQuery) || 
@@ -42,7 +50,8 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {isLoading && <LoadingSpinner />}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -114,7 +123,10 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                   <TableRow 
                     key={c.id} 
                     className="hover:bg-gray-50/50 cursor-pointer"
-                    onClick={() => router.push(`/customers/${c.id}`)}
+                    onClick={() => {
+                      setIsLoading(true);
+                      router.push(`/customers/${c.id}`);
+                    }}
                   >
                     <TableCell className="px-2 sm:px-4">
                       <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
