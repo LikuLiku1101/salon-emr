@@ -43,23 +43,25 @@ export default function LineUserIdForm({ customerId, initialLineUserId }: LineUs
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button 
-          size="sm" 
-          variant={isLinked ? "outline" : "outline"} 
-          className={cn(
-            "h-10 px-4 font-bold border-gray-300 w-full sm:w-auto order-3 sm:order-2",
-            isLinked ? "border-[var(--salon-purple)] text-[var(--salon-purple)] bg-[var(--salon-purple)]/5" : "text-gray-500"
-          )}
-        >
-          {isLinked ? (
-            <Check className="w-4 h-4 mr-2" />
-          ) : (
-            <Smartphone className="w-4 h-4 mr-2" />
-          )}
-          {isLinked ? "LINE連携済" : "LINE連携"}
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className={cn(
+              "h-10 px-4 font-bold border-gray-300 w-full sm:w-auto order-3 sm:order-2",
+              isLinked ? "border-[var(--salon-purple)] text-[var(--salon-purple)] bg-[var(--salon-purple)]/5" : "text-gray-500"
+            )}
+          >
+            {isLinked ? (
+              <Check className="w-4 h-4 mr-2" />
+            ) : (
+              <Smartphone className="w-4 h-4 mr-2" />
+            )}
+            {isLinked ? "LINE連携済" : "LINE連携"}
+          </Button>
+        }
+      />
       <PopoverContent className="w-80 p-4" align="end">
         <div className="space-y-4">
           <div className="space-y-2">
