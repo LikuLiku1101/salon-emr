@@ -32,6 +32,8 @@ import DeleteCustomerButton from "./delete-customer-button";
 import AddTreatmentSheetButton from "./add-treatment-button";
 import DeleteContractButton from "./delete-contract-button";
 import VisitHistoryList from "./visit-history-list";
+import LineUserIdForm from "./line-user-id-form";
+
 
 export default async function CustomerDetailPage({
   params,
@@ -145,15 +147,19 @@ export default async function CustomerDetailPage({
                         {customer.phone}
                     </div>
                 )}
+                {customer.line_user_id && (
+                    <div className="flex items-center gap-1.5 text-[var(--salon-purple)] bg-[var(--salon-purple)]/5 px-2 py-0.5 rounded border border-[var(--salon-purple)]/10">
+                        <Smartphone className="w-4 h-4" />
+                        <span className="text-[10px] font-mono">{customer.line_user_id.substring(0, 8)}...</span>
+                        <Badge variant="outline" className="text-[8px] h-3 px-1 border-[var(--salon-purple)] text-[var(--salon-purple)] align-middle">LINE連携済</Badge>
+                    </div>
+                )}
             </div>
         </div>
 
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             <DeleteCustomerButton customerId={id} customerName={customer.name} className="w-full sm:w-auto order-2 sm:order-1" />
-            <Button size="sm" variant="outline" className="h-10 px-4 font-bold border-gray-300 w-full sm:w-auto order-3 sm:order-2">
-                <Smartphone className="w-4 h-4 mr-2" />
-                LINE連携
-            </Button>
+            <LineUserIdForm customerId={id} initialLineUserId={customer.line_user_id} />
             <AddTreatmentSheetButton customerId={id} className="w-full sm:w-auto col-span-2 sm:col-span-1 order-1 sm:order-3" />
         </div>
       </header>

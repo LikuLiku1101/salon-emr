@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, MessageCircle } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ interface Customer {
   id: string;
   name: string;
   name_kana: string;
+  line_user_id?: string; // Added line_user_id
   contracts: Array<{
     id: string;
     course_name: string;
@@ -170,7 +171,15 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
         }}
       >
         <TableCell className="px-2 py-3">
-          <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
+            {c.line_user_id && (
+              <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[8px] font-black border border-emerald-100 animate-in fade-in scale-in duration-300">
+                <MessageCircle className="w-2.5 h-2.5 fill-emerald-600/10" />
+                LINE
+              </div>
+            )}
+          </div>
           <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">
             {c.name_kana || "-"}
           </div>

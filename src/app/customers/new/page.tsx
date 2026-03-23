@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { revalidatePath } from "next/cache";
+
 export default async function NewCustomerPage() {
   const createCustomer = async (formData: FormData) => {
     "use server";
@@ -26,10 +28,11 @@ export default async function NewCustomerPage() {
 
     if (error) {
       console.error(error);
-      return; // 実際はエラー表示などのハンドリングを追加
+      return;
     }
 
-    // 成功したら一覧画面へ戻る
+    // 成功したらキャッシュを更新して一覧画面へ戻る
+    revalidatePath("/customers");
     redirect("/customers");
   };
 

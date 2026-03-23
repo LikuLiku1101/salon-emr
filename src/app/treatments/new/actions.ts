@@ -1,8 +1,8 @@
-"use server";
-
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 
 export async function createReservation(formData: FormData) {
   const supabase = await createClient();
@@ -68,6 +68,40 @@ export async function createReservation(formData: FormData) {
   if (error) {
     console.error("Failed to create reservation:", error);
     throw new Error("Failed to create reservation");
+  }
+
+  // LINE自動送信
+  try {
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("name, line_user_id")
+      .eq("id", customer_id)
+      .single();
+
+    if (customer?.line_user_id) {
+      const { sendLineMessage } = await import("@/lib/line");
+      
+      let message = "";
+      if (visit_count === 1) {
+        // 初回予約の場合のメッセージ
+        const dateObj = new Date(visit_date);
+        const dateStr = format(dateObj, "M月d日");
+        const timeStr = visit_time ? visit_time.substring(0, 5).replace(":", "時") + "分" : "時間未定";
+
+        message = `${dateStr} ${timeStr}スタート\nでお待ちしております☺︎✨\n\n24時間以内の剃毛と、こちらをご一読頂けますようお願い申し上げます🙇‍♀️\n\nhttps://menzu-datsumou.com/rule/\n\n📍サロン住所\n〒157-0072\n東京都世田谷区祖師谷3-36-28\nサン・ルミエール101\n\n①祖師ヶ谷大蔵駅の改札を出て右に曲がり商店街を北に向かいます。\n②商店街を真っすぐ進み、左手にサンドラッグを超えた1階に[生鮮大関屋 祖師谷店]が入るマンションが当サロンです。\n③部屋番号は101号室です。お間違いの無いようにお気を付けください。`;
+      } else {
+        // 2回目以降の簡易メッセージ
+        message = `${customer.name}様、ご予約を承りました！✨\n\n日時：${visit_date} ${visit_time?.substring(0, 5) || ""}\n内容：${reserved_content || "未定"}\n\n当日お会いできるのを楽しみにしております。`;
+      }
+
+      await sendLineMessage(customer.line_user_id, message);
+      
+      // 送信済みフラグを更新
+      await supabase.from("treatments").update({ line_notified: true }).eq("id", treatment.id);
+    }
+  } catch (err) {
+    console.error("Failed to send automatic LINE message:", err);
+    // 自動送信の失敗は、予約自体の成功を妨げないようにエラーを握り潰すかログのみにする
   }
 
   revalidatePath("/treatments");

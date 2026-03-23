@@ -136,7 +136,7 @@ export async function saveTreatmentDetails(
 
     if (!existing) {
       const nextVisitCount = (current.visit_count || 1) + 1;
-      await supabase.from("treatments").insert({
+      const { data: nextTreatment } = await supabase.from("treatments").insert({
         customer_id: current.customer_id,
         visit_date: next_reservation_date,
         visit_time: next_reservation_time || null,
@@ -144,7 +144,28 @@ export async function saveTreatmentDetails(
         reserved_content: reserved_content || current.reserved_content,
         contract_id: updateData.contract_id || current.contract_id,
         status: "通常"
-      });
+      }).select().single();
+
+      // LINE自動送信（次回予約が作成された場合）
+      try {
+        const { data: customer } = await supabase
+          .from("customers")
+          .select("name, line_user_id")
+          .eq("id", current.customer_id)
+          .single();
+
+        if (customer?.line_user_id && nextTreatment) {
+          const { sendLineMessage } = await import("@/lib/line");
+          const nextMessage = `${customer.name}様、本日はご来店ありがとうございました！✨\n\n次回のご予約を以下の通り承っております：\n日時：${next_reservation_date} ${next_reservation_time?.substring(0, 5) || ""}\n\nまたのお越しを心よりお待ちしております。`;
+          await sendLineMessage(customer.line_user_id, nextMessage);
+          
+          // 次回予約に対しても通知済みフラグを付与
+          await supabase.from("treatments").update({ line_notified: true }).eq("id", nextTreatment.id);
+        }
+      } catch (err) {
+        console.error("Failed to send automatic reservation LINE message:", err);
+      }
+      
       revalidatePath(`/customers/${current.customer_id}`);
     }
   }
@@ -152,4 +173,46 @@ export async function saveTreatmentDetails(
   revalidatePath(`/treatments/${treatmentId}`);
   revalidatePath("/treatments");
   return { success: true };
+}
+
+export async function sendTreatmentLineMessage(treatmentId: string) {
+  const supabase = await createClient();
+  const { data: treatment, error } = await supabase
+    .from("treatments")
+    .select(`
+      *,
+      customers ( name, line_user_id )
+    `)
+    .eq("id", treatmentId)
+    .single();
+
+  if (error || !treatment) return { success: false, error: "カルテが見つかりませんでした" };
+  if (!treatment.customers?.line_user_id) return { success: false, error: "LINE IDが登録されていません" };
+
+  const customerName = treatment.customers.name;
+  const nextDate = treatment.next_reservation_date;
+  
+  let message = `${customerName}様、本日はご来店ありがとうございました！✨\n\n`;
+  if (nextDate) {
+    message += `次回のご予約は ${nextDate} ${treatment.next_reservation_time?.substring(0, 5) || ""} に承っております。お気をつけてお越しくださいませ。`;
+  } else {
+    message += `またのご来店をスタッフ一同、心よりお待ちしております。`;
+  }
+
+  try {
+    const { sendLineMessage } = await import("@/lib/line");
+    await sendLineMessage(treatment.customers.line_user_id, message);
+    
+    // 通知済みフラグを更新
+    await supabase
+      .from("treatments")
+      .update({ line_notified: true })
+      .eq("id", treatmentId);
+
+    revalidatePath(`/treatments/${treatmentId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error(err);
+    return { success: false, error: "LINE送信に失敗しました" };
+  }
 }

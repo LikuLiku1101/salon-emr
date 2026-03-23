@@ -49,3 +49,19 @@ export async function deleteCustomer(customerId: string) {
   revalidatePath("/customers");
   return { success: true };
 }
+export async function updateCustomerLineUserId(customerId: string, lineUserId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("customers")
+    .update({ line_user_id: lineUserId })
+    .eq("id", customerId);
+
+  if (error) {
+    console.error("Update Customer Line User ID Error:", error);
+    return { success: false, error: "LINE IDの更新に失敗しました" };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  return { success: true };
+}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { saveTreatmentDetails } from "@/app/treatments/[id]/actions";
+import { saveTreatmentDetails, sendTreatmentLineMessage } from "@/app/treatments/[id]/actions";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -176,6 +176,24 @@ export default function TreatmentForm({
   const [imagePaths, setImagePaths] = useState<string[]>(treatment.image_paths ?? []);
   const [isUploading, setIsUploading] = useState(false);
   const supabaseBrowser = createClient();
+  const [isLineSending, setIsLineSending] = useState(false);
+
+  const handleLineMessage = async () => {
+    if (!treatment.customers?.line_user_id) {
+       toast.error("LINE IDが登録されていません");
+       return;
+    }
+    setIsLineSending(true);
+    try {
+      const result = await sendTreatmentLineMessage(treatment.id);
+      if (result.success) toast.success("LINEでお礼メッセージを送信しました！");
+      else toast.error(result.error);
+    } catch (err) {
+      toast.error("送信中にエラーが発生しました");
+    } finally {
+      setIsLineSending(false);
+    }
+  };
 
   // ----- 金額の自動計算ロジック -----
   const isFemale = treatment.customers?.gender === '女性';
@@ -661,7 +679,20 @@ export default function TreatmentForm({
         {!isEditMode ? (
           /* ================== 閲覧モード (View Mode) ================== */
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button 
+                onClick={handleLineMessage} 
+                disabled={isLineSending || !treatment.customers?.line_user_id}
+                variant="outline" 
+                size="sm"
+                className={cn(
+                  "font-bold border-emerald-500 text-emerald-600 hover:bg-emerald-50",
+                  !treatment.customers?.line_user_id && "opacity-30 cursor-not-allowed grayscale"
+                )}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                {isLineSending ? "送信中..." : "LINEでお礼を送る"}
+              </Button>
               <Button 
                 onClick={() => setIsEditMode(true)} 
                 variant="outline" 

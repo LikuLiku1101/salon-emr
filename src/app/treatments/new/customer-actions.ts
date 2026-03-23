@@ -54,6 +54,7 @@ export async function createNewCustomerAndTreatment(formData: FormData) {
   }
 
   revalidatePath("/treatments");
+  revalidatePath("/customers");
   revalidatePath(`/customers/${customer.id}`);
   
   // 3. 入力画面にリダイレクト
