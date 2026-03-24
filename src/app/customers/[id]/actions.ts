@@ -65,3 +65,28 @@ export async function updateCustomerLineUserId(customerId: string, lineUserId: s
   revalidatePath(`/customers/${customerId}`);
   return { success: true };
 }
+
+export async function sendManualLineMessage(customerId: string, text: string) {
+  const supabase = await createClient();
+
+  const { data: customer, error } = await supabase
+    .from("customers")
+    .select("name, line_user_id")
+    .eq("id", customerId)
+    .single();
+
+  if (error || !customer?.line_user_id) {
+    return { success: false, error: "LINE IDが見つかりませんでした" };
+  }
+
+  try {
+    const { sendLineMessage } = await import("@/lib/line");
+    await sendLineMessage(customer.line_user_id, text);
+    
+    revalidatePath(`/customers/${customerId}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error("Manual Message Send Error:", err);
+    return { success: false, error: "LINE送信に失敗しました" };
+  }
+}

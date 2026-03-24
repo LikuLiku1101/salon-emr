@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import Script from "next/script";
+import { cn } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -111,15 +112,25 @@ export default function JoinPage() {
           サロン「SHINE」へのLINE連携が完了しました。<br />
           今後はLINEから予約の確認や<br />リマインドが届くようになります。
         </p>
-        <Button 
-          className="w-full h-14 bg-[var(--salon-purple)] text-white font-black rounded-xl text-lg shadow-lg"
-          onClick={() => {
-            if (window.liff) window.liff.closeWindow();
-            else window.close();
-          }}
-        >
-          閉じる
-        </Button>
+        <div className="w-full space-y-3">
+          <Button 
+            className="w-full h-14 bg-[var(--salon-purple)] text-white font-black rounded-xl text-lg shadow-lg"
+            onClick={() => {
+              if (window.liff && window.liff.isInClient()) {
+                window.liff.closeWindow();
+              } else {
+                window.close();
+                // window.close() が無効な場合のフォールバックメッセージ
+                toast.info("このタブを閉じてLINEに戻ってください");
+              }
+            }}
+          >
+            閉じる
+          </Button>
+          <p className="text-[10px] text-gray-400 text-center font-bold">
+            ※ボタンが反応しない場合は、ブラウザのタブを閉じてください。
+          </p>
+        </div>
       </div>
     );
   }
@@ -223,18 +234,43 @@ export default function JoinPage() {
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 space-y-4">
+                <div className={cn(
+                  "p-3 rounded-xl border flex items-center justify-between transition-all",
+                  lineUserId 
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                    : "bg-amber-50 border-amber-100 text-amber-700"
+                )}>
+                  <div className="flex items-center gap-2 text-xs font-bold">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full animate-pulse",
+                      lineUserId ? "bg-emerald-500" : "bg-amber-500"
+                    )} />
+                    {lineUserId ? "LINE連携：準備完了" : "LINE連携：準備中..."}
+                  </div>
+                  {lineUserId && (
+                    <span className="text-[10px] font-mono opacity-50">
+                      ID: {lineUserId.substring(0, 6)}...
+                    </span>
+                  )}
+                </div>
+
                 <Button 
                   type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full h-14 bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white font-black rounded-xl text-lg shadow-xl shadow-[var(--salon-purple)]/20 transition-all active:scale-[0.98]"
+                  disabled={isSubmitting || !lineUserId}
+                  className="w-full h-14 bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white font-black rounded-xl text-lg shadow-xl shadow-[var(--salon-purple)]/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "登録・LINE連携する"
+                    lineUserId ? "登録・LINE連携する" : "LINEを読み込んでいます..."
                   )}
                 </Button>
+                {!lineUserId && (
+                  <p className="text-[10px] text-amber-600 font-bold text-center animate-pulse">
+                    LINEにログインしてから登録してください
+                  </p>
+                )}
                 <p className="text-[10px] text-gray-400 text-center mt-4 font-medium leading-relaxed italic">
                     ※ご登録いただいた情報は、予約管理・重要なお知らせの送信にのみ使用いたします。
                 </p>

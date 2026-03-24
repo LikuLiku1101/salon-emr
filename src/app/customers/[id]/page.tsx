@@ -33,6 +33,7 @@ import AddTreatmentSheetButton from "./add-treatment-button";
 import DeleteContractButton from "./delete-contract-button";
 import VisitHistoryList from "./visit-history-list";
 import LineUserIdForm from "./line-user-id-form";
+import ManualMessageForm from "./manual-message-form";
 
 
 export default async function CustomerDetailPage({
@@ -159,7 +160,11 @@ export default async function CustomerDetailPage({
 
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             <DeleteCustomerButton customerId={id} customerName={customer.name} className="w-full sm:w-auto order-2 sm:order-1" />
-            <LineUserIdForm customerId={id} initialLineUserId={customer.line_user_id} />
+            {customer.line_user_id ? (
+                <ManualMessageForm customerId={id} customerName={customer.name} />
+            ) : (
+                <LineUserIdForm customerId={id} initialLineUserId={customer.line_user_id} />
+            )}
             <AddTreatmentSheetButton customerId={id} className="w-full sm:w-auto col-span-2 sm:col-span-1 order-1 sm:order-3" />
         </div>
       </header>

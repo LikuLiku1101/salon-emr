@@ -1,9 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Calendar, Users, Ban, Plus, UserPlus, FilePlus, Sparkles, ChevronRight } from "lucide-react";
+import { Calendar, Users, Plus, UserPlus, FilePlus, Sparkles, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { LoadingLink } from "@/components/loading-link";
+import { LineJoinDialog } from "@/components/line-join-dialog-wrapper";
 
 const COURSE_NAMES = ["全身脱毛", "フェイスセット", "VIOセット", "腰から下セット", "首から下セット"];
 
@@ -40,31 +41,30 @@ export default async function Dashboard() {
       </header>
 
       {/* クイックアクションボタン */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <LoadingLink href="/treatments/new-sheet" className="group">
           <div className="h-24 sm:h-32 bg-[var(--salon-purple)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-purple-200 hover:shadow-purple-300 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
             <Sparkles className="absolute -right-2 -top-2 w-16 h-16 opacity-10 group-hover:scale-110 transition-transform" />
             <FilePlus className="w-6 h-6 sm:w-8 sm:h-8" />
-            <span className="text-base sm:text-xl font-black">施術シート登録</span>
+            <span className="text-base sm:text-lg font-black leading-tight">施術シート<br className="sm:hidden" />登録</span>
           </div>
         </LoadingLink>
 
         <LoadingLink href="/treatments/new" className="group">
           <div className="h-24 sm:h-32 bg-white border-2 border-[var(--salon-purple)] text-[var(--salon-purple)] rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-md hover:shadow-lg hover:bg-purple-50 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
             <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
-            <span className="text-base sm:text-xl font-black">新規予約登録</span>
+            <span className="text-base sm:text-lg font-black leading-tight">新規予約<br className="sm:hidden" />登録</span>
           </div>
         </LoadingLink>
 
         <Link href="/customers/new" className="group">
           <div className="h-24 sm:h-32 bg-[var(--salon-teal)] text-white rounded-2xl p-4 sm:p-6 flex flex-col justify-between shadow-lg shadow-teal-100 hover:shadow-teal-200 hover:-translate-y-1 transition-all active:scale-95 relative overflow-hidden">
             <UserPlus className="w-6 h-6 sm:w-8 sm:h-8" />
-            <span className="text-base sm:text-xl font-black">新規顧客登録</span>
+            <span className="text-base sm:text-lg font-black leading-tight">新規顧客<br className="sm:hidden" />登録</span>
           </div>
         </Link>
+        <LineJoinDialog />
       </div>
-
-
 
       {/* 今日のスケジュール（モバイル対応カードレイアウト） */}
       <div className="space-y-4">
