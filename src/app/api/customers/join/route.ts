@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       if (line_user_id) {
         try {
           const { sendLineMessage } = await import("@/lib/line");
-          const welcomeMsg = `${name}様、はじめまして！✨ 脱毛サロンSHINEへのご登録・LINE連携ありがとうございます😊\n\nこちらのLINEでは予約の確認やリマインドを配信しております🌿 どうぞよろしくお願いいたします！`;
+          const welcomeMsg = `${name}様、LINE連携ありがとうございます！✨ 脱毛サロンSHINEの公式アカウントです😊\n\n今後はリマインドやご予約の確認などをこちらのLINEからお届けします🌿 何かございましたら、いつでもこちらのチャットからご連絡くださいませ✨`;
           await sendLineMessage(line_user_id, welcomeMsg);
         } catch (err) {
           console.error("Welcome message failed:", err);
