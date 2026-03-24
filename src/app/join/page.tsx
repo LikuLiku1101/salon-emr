@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, Smartphone, User, UserPlus, Heart } from "lucide-react";
+import { Loader2, CheckCircle2, Smartphone, User, UserPlus, Heart, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,8 @@ export default function JoinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [lineUserId, setLineUserId] = useState<string | null>(null);
+  const [liffError, setLiffError] = useState<string | null>(null);
+  const [liffId, setLiffId] = useState<string | null>(null);
 
   // フォームの状態
   const [formData, setFormData] = useState({
@@ -32,31 +34,35 @@ export default function JoinPage() {
 
   const initLiff = async () => {
     try {
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (!liffId) {
-        console.warn("NEXT_PUBLIC_LIFF_ID is not set.");
+      setIsLoading(true);
+      const id = process.env.NEXT_PUBLIC_LIFF_ID;
+      setLiffId(id || null);
+      
+      if (!id) {
+        setLiffError("LIFF ID が設定されていません。Vercelの環境変数を確認してください。");
         setIsLoading(false);
         return;
       }
 
-      await window.liff.init({ liffId });
+      await window.liff.init({ liffId: id });
       
       if (!window.liff.isLoggedIn()) {
+        console.log("User not logged in, triggering login.");
         window.liff.login();
       } else {
         const profile = await window.liff.getProfile();
         setLineUserId(profile.userId);
-        console.log("LINE User ID captured:", profile.userId);
+        setLiffError(null);
       }
-      setIsLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("LIFF initialization failed", err);
+      setLiffError(err.message || "LIFFの初期化中に未知のエラーが発生しました。");
+    } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // ページ読み込み時にすでにある場合は初期化
     if (typeof window !== "undefined" && window.liff) {
       initLiff();
     }
@@ -64,10 +70,13 @@ export default function JoinPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!lineUserId) {
+      toast.error("LINEの情報が取得できていません。再読み込みしてください。");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
-      // サーバーアクションまたはAPIを呼び出してDBに保存
       const response = await fetch("/api/customers/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,13 +99,36 @@ export default function JoinPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-8">
         <Script 
           src="https://static.line-scdn.net/liff/edge/2/sdk.js" 
           onLoad={initLiff} 
         />
         <Loader2 className="w-10 h-10 text-[var(--salon-purple)] animate-spin mb-4" />
         <p className="text-sm font-bold text-gray-400">システムを準備しています...</p>
+      </div>
+    );
+  }
+
+  if (liffError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8 space-y-6">
+        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-12 h-12" />
+        </div>
+        <div className="text-center space-y-2">
+            <h1 className="text-xl font-black text-gray-900">読み込みエラー</h1>
+            <p className="text-gray-500 text-xs font-bold leading-relaxed">
+              {liffError}
+            </p>
+            <p className="text-[10px] text-gray-400 pt-2">
+              LIFF ID: {liffId || "未設定"}
+            </p>
+        </div>
+        <Button onClick={() => window.location.reload()} variant="outline" className="gap-2 font-bold w-full max-w-xs">
+          <RefreshCw className="w-4 h-4" />
+          再読み込みする
+        </Button>
       </div>
     );
   }
@@ -120,7 +152,6 @@ export default function JoinPage() {
                 window.liff.closeWindow();
               } else {
                 window.close();
-                // window.close() が無効な場合のフォールバックメッセージ
                 toast.info("このタブを閉じてLINEに戻ってください");
               }
             }}
@@ -137,11 +168,6 @@ export default function JoinPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
-      <Script 
-        src="https://static.line-scdn.net/liff/edge/2/sdk.js" 
-        onLoad={initLiff} 
-      />
-      {/* ヒーローセクション */}
       <div className="bg-[var(--salon-purple)] text-white p-8 pt-12 pb-16 text-center space-y-4">
         <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl mx-auto flex items-center justify-center border border-white/20">
             <Heart className="w-8 h-8 fill-white" />
@@ -268,12 +294,9 @@ export default function JoinPage() {
                 </Button>
                 {!lineUserId && (
                   <p className="text-[10px] text-amber-600 font-bold text-center animate-pulse">
-                    LINEにログインしてから登録してください
+                    LINEの読み込みをお待ちください...
                   </p>
                 )}
-                <p className="text-[10px] text-gray-400 text-center mt-4 font-medium leading-relaxed italic">
-                    ※ご登録いただいた情報は、予約管理・重要なお知らせの送信にのみ使用いたします。
-                </p>
               </div>
             </form>
           </CardContent>
