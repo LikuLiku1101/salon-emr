@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       if (customer?.line_user_id) {
         const dateStr = format(new Date(t.visit_date), "M月d日");
         const timeStr = t.visit_time ? t.visit_time.substring(0, 5) : "--:--";
-        const message = `${customer.name}様こんにちは😊\n脱毛サロンSHINEです。\n明日のご予約の確認を送らせていただきます☺︎ご返信不要です🌿\n\n日時：${dateStr} ${timeStr}～\n内容：${t.reserved_content || "施術内容未定"}\n部屋番号は【101】となります。お間違いの無いようにお気を付けください。\n\nお気をつけてお越しくださいませ😊`;
+        const message = `${customer.name}様こんばんは😊\n脱毛サロンSHINEです。\n明日のご予約の確認を送らせていただきます☺︎ご返信不要です🌿\n\n日時：${dateStr} ${timeStr}～\n内容：${t.reserved_content || "施術内容未定"}\n部屋番号は【101】となります。お間違いの無いようにお気を付けください。\n\nお気をつけてお越しくださいませ😊`;
         await sendLineMessage(customer.line_user_id, message);
         await supabase.from('treatments').update({ reminder_notified: true }).eq('id', t.id);
         results.push({ customer: customer.name, type: 'reminder', status: 'success' });
