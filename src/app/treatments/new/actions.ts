@@ -81,18 +81,17 @@ export async function createReservation(formData: FormData) {
 
     if (customer?.line_user_id) {
       const { sendLineMessage } = await import("@/lib/line");
-      
+      const dateObj = new Date(visit_date);
+      const dateStr = format(dateObj, "M月d日");
+      const timeStr = visit_time ? visit_time.substring(0, 5).replace(":", "時") + "分" : "時間未定";
+
       let message = "";
       if (visit_count === 1) {
-        // 初回予約の場合のメッセージ
-        const dateObj = new Date(visit_date);
-        const dateStr = format(dateObj, "M月d日");
-        const timeStr = visit_time ? visit_time.substring(0, 5).replace(":", "時") + "分" : "時間未定";
-
+        // 初回予約
         message = `${dateStr} ${timeStr}スタート\nでお待ちしております☺︎✨\n\n24時間以内の剃毛と、こちらをご一読頂けますようお願い申し上げます🙇‍♀️\n\nhttps://menzu-datsumou.com/rule/\n\n📍サロン住所\n〒157-0072\n東京都世田谷区祖師谷3-36-28\nサン・ルミエール101\n\n①祖師ヶ谷大蔵駅の改札を出て右に曲がり商店街を北に向かいます。\n②商店街を真っすぐ進み、左手にサンドラッグを超えた1階に[生鮮大関屋 祖師谷店]が入るマンションが当サロンです。\n③部屋番号は101号室です。お間違いの無いようにお気を付けください。`;
       } else {
-        // 2回目以降の簡易メッセージ
-        message = `${customer.name}様、ご予約を承りました！✨\n\n日時：${visit_date} ${visit_time?.substring(0, 5) || ""}\n内容：${reserved_content || "未定"}\n\n当日お会いできるのを楽しみにしております。`;
+        // 2回目以降
+        message = `${customer.name}様こんにちは😊\n脱毛サロンSHINEです。\nご予約内容の確認を送らせていただきます🌿\n\n日時：${dateStr} ${visit_time?.substring(0, 5) || ""}\n内容：${reserved_content || "未定"}\n部屋番号は【101】となります。お間違いの無いようにお気を付けください。\n\nお気をつけてお越しくださいませ😊`;
       }
 
       await sendLineMessage(customer.line_user_id, message);
