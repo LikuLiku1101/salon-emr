@@ -12,7 +12,7 @@ export default async function NewReservationPage({
   // 1. 顧客リストを50音順に取得
   const { data: customers } = await supabase
     .from("customers")
-    .select("id, name, name_kana, phone")
+    .select("id, name, name_kana, phone, line_user_id")
     .order("name_kana", { ascending: true });
 
   // 2. スタッフリストを取得
