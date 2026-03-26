@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ArrowLeft, Save, Search, UserPlus, Users, MessageCircle } from "lucide-react";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export default function ReservationForm({
   staffList: Staff[],
   initialCustomerId?: string
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
   // 初期状態で「名簿から選択 (既にある情報を探す)」を優先する
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,17 +94,13 @@ export default function ReservationForm({
       <div className="bg-gray-50 border rounded-xl overflow-hidden shadow-sm">
         <form 
           action={async (formData) => {
-            setIsSubmitting(true);
-            try {
-              await createReservation(formData);
-            } catch (error: any) {
-              if (error?.digest?.startsWith("NEXT_REDIRECT")) {
-                // リダイレクトの場合はそのまま遷移を待機
-                throw error;
+            startTransition(async () => {
+              try {
+                await createReservation(formData);
+              } catch (error) {
+                console.error(error);
               }
-              console.error(error);
-              setIsSubmitting(false);
-            }
+            });
           }} 
           className="p-6 space-y-6"
         >

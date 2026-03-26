@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Search, UserPlus, FilePlus, ChevronRight, X, User } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,6 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// Next.jsのredirect()はエラーを投げるため、それを検知するための関数
-const isRedirectError = (error: any) => 
-  typeof error === 'object' && error !== null && 'digest' in error && typeof error.digest === 'string' && error.digest.startsWith("NEXT_REDIRECT");
-
 interface Customer {
   id: string;
   name: string;
@@ -24,7 +20,7 @@ interface Customer {
 
 export default function SheetRegistrationForm({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isPending, setIsPending] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [selectedId, setSelectedId] = useState("");
   const [showNewForm, setShowNewForm] = useState(false);
 
@@ -33,36 +29,28 @@ export default function SheetRegistrationForm({ customers }: { customers: Custom
     (c.name_kana && c.name_kana.includes(searchQuery))
   );
 
-  const handleCreateForExisting = async (id: string) => {
+  const handleCreateForExisting = (id: string) => {
     setSelectedId(id);
-    setIsPending(true);
-    try {
-      await createDetailedTreatment(id);
-    } catch (error) {
-      if (isRedirectError(error)) {
-        // リダイレクトの場合はエラーではないので、isPendingをtrueのまま投げ直して遷移を待つ
-        throw error;
+    startTransition(async () => {
+      try {
+        await createDetailedTreatment(id);
+      } catch (error) {
+        console.error(error);
+        toast.error("シートの作成に失敗しました");
+        setSelectedId("");
       }
-      console.error(error);
-      toast.error("シートの作成に失敗しました");
-      setIsPending(false);
-      setSelectedId("");
-    }
+    });
   };
 
-  const handleNewCustomerSubmit = async (formData: FormData) => {
-    setIsPending(true);
-    try {
-      await createNewCustomerAndTreatment(formData);
-    } catch (error) {
-      if (isRedirectError(error)) {
-        // リダイレクトの場合はエラーではない
-        throw error;
+  const handleNewCustomerSubmit = (formData: FormData) => {
+    startTransition(async () => {
+      try {
+        await createNewCustomerAndTreatment(formData);
+      } catch (error) {
+        console.error(error);
+        toast.error("新規顧客登録とシート作成に失敗しました");
       }
-      console.error(error);
-      toast.error("新規顧客登録とシート作成に失敗しました");
-      setIsPending(false);
-    }
+    });
   };
 
   return (

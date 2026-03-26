@@ -76,10 +76,11 @@ export default async function CustomerDetailPage({
     .order("visit_date", { ascending: false });
 
   // 4. 未来の予約と過去の履歴を分ける (JSTを考慮した判定)
-  // JSTでの現在の日付と時間を取得
-  const nowJst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-  const todayStr = format(nowJst, "yyyy-MM-dd");
-  const nowTimeStr = format(nowJst, "HH:mm:ss");
+  // JSTでの現在の日付と時間を取得 (UTCに9時間を足す)
+  const nowUtc = new Date();
+  const nowJst = new Date(nowUtc.getTime() + (9 * 60 * 60 * 1000));
+  const todayStr = nowJst.toISOString().split("T")[0]; // YYYY-MM-DD
+  const nowTimeStr = nowJst.toISOString().split("T")[1].substring(0, 8); // HH:mm:ss
   
   // まず日付の昇順（古い順）に並べ替える
   const allTreatmentsSorted = (treatments || []).sort((a, b) => {

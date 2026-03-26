@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createDetailedTreatment } from "@/app/treatments/new/actions";
@@ -15,21 +15,17 @@ export default function AddTreatmentSheetButton({
   customerId: string;
   className?: string;
 }) {
-  const [isPending, setIsPending] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleClick = async () => {
-    setIsPending(true);
-    try {
-      await createDetailedTreatment(customerId);
-    } catch (error: any) {
-      if (error?.digest?.startsWith("NEXT_REDIRECT")) {
-        // リダイレクトの場合はそのまま遷移を待機
-        throw error;
+  const handleClick = () => {
+    startTransition(async () => {
+      try {
+        await createDetailedTreatment(customerId);
+      } catch (error) {
+        console.error(error);
+        toast.error("作成に失敗しました");
       }
-      console.error(error);
-      toast.error("作成に失敗しました");
-      setIsPending(false);
-    }
+    });
   };
 
   return (
