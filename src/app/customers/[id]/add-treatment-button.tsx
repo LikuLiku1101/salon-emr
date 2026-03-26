@@ -23,8 +23,8 @@ export default function AddTreatmentSheetButton({
       await createDetailedTreatment(customerId);
     } catch (error: any) {
       if (error?.digest?.startsWith("NEXT_REDIRECT")) {
-        // リダイレクトの場合は正常
-        return;
+        // リダイレクトの場合はそのまま遷移を待機
+        throw error;
       }
       console.error(error);
       toast.error("作成に失敗しました");

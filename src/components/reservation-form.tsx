@@ -100,7 +100,7 @@ export default function ReservationForm({
             } catch (error: any) {
               if (error?.digest?.startsWith("NEXT_REDIRECT")) {
                 // リダイレクトの場合はそのまま遷移を待機
-                return;
+                throw error;
               }
               console.error(error);
               setIsSubmitting(false);

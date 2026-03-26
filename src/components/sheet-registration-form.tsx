@@ -12,7 +12,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 // Next.jsのredirect()はエラーを投げるため、それを検知するための関数
-const isRedirectError = (error: any) => error?.digest?.startsWith("NEXT_REDIRECT");
+const isRedirectError = (error: any) => 
+  typeof error === 'object' && error !== null && 'digest' in error && typeof error.digest === 'string' && error.digest.startsWith("NEXT_REDIRECT");
 
 interface Customer {
   id: string;
@@ -39,8 +40,8 @@ export default function SheetRegistrationForm({ customers }: { customers: Custom
       await createDetailedTreatment(id);
     } catch (error) {
       if (isRedirectError(error)) {
-        // リダイレクトの場合はエラーではないので、isPendingをtrueのままにして遷移を待つ
-        return;
+        // リダイレクトの場合はエラーではないので、isPendingをtrueのまま投げ直して遷移を待つ
+        throw error;
       }
       console.error(error);
       toast.error("シートの作成に失敗しました");
@@ -56,7 +57,7 @@ export default function SheetRegistrationForm({ customers }: { customers: Custom
     } catch (error) {
       if (isRedirectError(error)) {
         // リダイレクトの場合はエラーではない
-        return;
+        throw error;
       }
       console.error(error);
       toast.error("新規顧客登録とシート作成に失敗しました");

@@ -433,7 +433,7 @@ export default function TreatmentForm({
       }
     } catch (error: any) {
       if (error?.digest?.startsWith("NEXT_REDIRECT")) {
-        return; // リダイレクトはエラーではない
+        throw error; // リダイレクトはエラーではない
       }
       console.error(error);
       toast.error("システムエラーが発生しました");
