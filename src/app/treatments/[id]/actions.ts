@@ -3,6 +3,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 
 export async function saveTreatmentDetails(
   treatmentId: string, 
@@ -156,7 +158,12 @@ export async function saveTreatmentDetails(
 
         if (customer?.line_user_id && nextTreatment) {
           const { sendLineMessage } = await import("@/lib/line");
-          const nextMessage = `${customer.name}様、本日はご来店ありがとうございました！✨\n\n次回のご予約を以下の通り承っております：\n日時：${next_reservation_date} ${next_reservation_time?.substring(0, 5) || ""}\n\nまたのお越しを心よりお待ちしております。`;
+          
+          const nextDateObj = new Date(next_reservation_date);
+          const nextDateStr = format(nextDateObj, "yyyy年M月d日");
+          const nextTimeStr = next_reservation_time ? next_reservation_time.substring(0, 5).replace(":", "時") + "分スタート" : "時間未定";
+
+          const nextMessage = `${customer.name}様、本日はご来店ありがとうございました！✨\n\n次回のご予約を以下の通り承っております：\n日時：${nextDateStr} ${nextTimeStr}\n\nまたのお越しを心よりお待ちしております。`;
           await sendLineMessage(customer.line_user_id, nextMessage);
           
           // 次回予約に対しても通知済みフラグを付与
@@ -194,7 +201,10 @@ export async function sendTreatmentLineMessage(treatmentId: string) {
   
   let message = `${customerName}様、本日はご来店ありがとうございました！✨\n\n`;
   if (nextDate) {
-    message += `次回のご予約は ${nextDate} ${treatment.next_reservation_time?.substring(0, 5) || ""} に承っております。お気をつけてお越しくださいませ。`;
+    const nextDateObj = new Date(nextDate);
+    const nextDateStr = format(nextDateObj, "yyyy年M月d日");
+    const nextTimeStr = treatment.next_reservation_time ? treatment.next_reservation_time.substring(0, 5).replace(":", "時") + "分スタート" : "時間未定";
+    message += `次回のご予約は ${nextDateStr} ${nextTimeStr} に承っております。お気をつけてお越しくださいませ。`;
   } else {
     message += `またのご来店をスタッフ一同、心よりお待ちしております。`;
   }
