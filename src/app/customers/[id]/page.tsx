@@ -32,6 +32,7 @@ import DeleteCustomerButton from "./delete-customer-button";
 import AddTreatmentSheetButton from "./add-treatment-button";
 import DeleteContractButton from "./delete-contract-button";
 import VisitHistoryList from "./visit-history-list";
+import DeleteTreatmentButton from "./delete-button";
 import LineUserIdForm from "./line-user-id-form";
 import ManualMessageForm from "./manual-message-form";
 
@@ -74,14 +75,16 @@ export default async function CustomerDetailPage({
     .eq("customer_id", id)
     .order("visit_date", { ascending: false });
 
-  // 4. 未来の予約と過去の履歴を分ける (文字列比較で安定化)
-  const todayStr = format(new Date(), "yyyy-MM-dd");
+  // 4. 未来の予約と過去の履歴を分ける (JSTを考慮した判定)
+  // JSTでの現在の日付と時間を取得
+  const nowJst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const todayStr = format(nowJst, "yyyy-MM-dd");
+  const nowTimeStr = format(nowJst, "HH:mm:ss");
   
-  // まず日付の昇順（古い順）に並べ替えて、来店回数を再計算する
+  // まず日付の昇順（古い順）に並べ替える
   const allTreatmentsSorted = (treatments || []).sort((a, b) => {
     const dateComp = a.visit_date.localeCompare(b.visit_date);
     if (dateComp !== 0) return dateComp;
-    // 同じ日付の場合は時間で比較
     return (a.visit_time || "").localeCompare(b.visit_time || "");
   });
 
@@ -95,14 +98,26 @@ export default async function CustomerDetailPage({
     return { ...t, display_count: null };
   });
 
-  // 未来の予約 (明日以降)
+  // 未来の予約: (日付が明日以降) OR (日付が今日 かつ 時間が現在より後)
   const futureReservations = treatmentsWithCorrectCount
-    .filter(t => t.visit_date > todayStr)
+    .filter(t => {
+      if (t.visit_date > todayStr) return true;
+      if (t.visit_date === todayStr) {
+        return (t.visit_time || "00:00:00") > nowTimeStr;
+      }
+      return false;
+    })
     .sort((a, b) => a.visit_date.localeCompare(b.visit_date));
   
-  // 過去の履歴 (今日を含む) - 表示用に降順（新しい順）に戻す
+  // 過去の履歴 (今日までのもので、未来ではないもの) - 表示用に降順（新しい順）に戻す
   const pastTreatments = treatmentsWithCorrectCount
-    .filter(t => t.visit_date <= todayStr)
+    .filter(t => {
+      if (t.visit_date < todayStr) return true;
+      if (t.visit_date === todayStr) {
+        return (t.visit_time || "00:00:00") <= nowTimeStr;
+      }
+      return false;
+    })
     .sort((a, b) => b.visit_date.localeCompare(a.visit_date) || (b.visit_time || "").localeCompare(a.visit_time || ""));
 
   // 5. 各契約ごとの利用回数を計算（未来の予約は含めない）
@@ -194,12 +209,19 @@ export default async function CustomerDetailPage({
                     </div>
                   </div>
                 </div>
-                <Link href={`/treatments/${res.id}`}>
-                  <Button variant="ghost" size="sm" className="font-bold text-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/10">
-                    詳細
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-1">
+                  <DeleteTreatmentButton 
+                    treatmentId={res.id} 
+                    customerId={id} 
+                    visitDate={format(new Date(res.visit_date), "yyyy/MM/dd")} 
+                  />
+                  <Link href={`/treatments/${res.id}`}>
+                    <Button variant="ghost" size="sm" className="font-bold text-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/10">
+                      詳細
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
