@@ -425,18 +425,18 @@ export default function TreatmentForm({
       
       if (result.success) {
         toast.success("カルテを保存しました");
-        // 即座にカレンダー画面にも情報を反映させるために、必要に応じて遷移やリフレッシュを行う
-        // 現場では保存後にカレンダーに戻ることが多い想定
-        setTimeout(() => {
-          window.location.href = "/treatments";
-        }, 1000);
+        // 成功時は遷移するまでローディングを出し続ける
+        window.location.href = "/treatments";
       } else {
         toast.error(`保存に失敗しました: ${result.error}`);
+        setIsSubmitting(false);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+        return; // リダイレクトはエラーではない
+      }
       console.error(error);
       toast.error("システムエラーが発生しました");
-    } finally {
       setIsSubmitting(false);
     }
   };

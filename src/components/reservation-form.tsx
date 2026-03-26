@@ -97,7 +97,12 @@ export default function ReservationForm({
             setIsSubmitting(true);
             try {
               await createReservation(formData);
-            } finally {
+            } catch (error: any) {
+              if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+                // リダイレクトの場合はそのまま遷移を待機
+                return;
+              }
+              console.error(error);
               setIsSubmitting(false);
             }
           }} 
