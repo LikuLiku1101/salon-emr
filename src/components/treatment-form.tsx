@@ -506,15 +506,33 @@ export default function TreatmentForm({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5 border-t border-[var(--salon-purple)]/5">
-            {/* 担当者表示 (閲覧・確認用) */}
+            {/* 担当者選択 (上部に集約) */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
                 <User className="w-3.5 h-3.5" />
                 担当スタッフ
               </Label>
-              <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800">
-                {staffList.find(s => s.id === staffId)?.name || "未設定"}
-              </div>
+              {isEditMode ? (
+                <div className="relative">
+                  <select
+                    value={staffId || ""}
+                    onChange={(e) => setStaffId(e.target.value)}
+                    className="h-11 w-full bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 px-4 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
+                  >
+                    <option value="">選択してください</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800">
+                  {staffList.find(s => s.id === staffId)?.name || "未設定"}
+                </div>
+              )}
             </div>
 
             {/* 日付・時間変更 (編集モード時のみ詳細表示) */}
@@ -1308,29 +1326,6 @@ export default function TreatmentForm({
                   defaultValue={treatment.next_reservation_time || ""}
                   className="h-11 bg-white font-medium"
                 />
-              </div>
-              
-              {/* 担当スタッフ選択（入力モード - 最後に移動） */}
-              <div className="space-y-2 sm:col-span-2 border-t pt-4 mt-2">
-                <Label className="font-bold text-gray-700 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[var(--salon-purple)]" />
-                  担当スタッフを選択
-                </Label>
-                <div className="relative">
-                  <select
-                    value={staffId || ""}
-                    onChange={(e) => setStaffId(e.target.value)}
-                    className="h-12 w-full bg-white border-2 border-[var(--salon-purple)]/20 rounded-xl text-lg font-black text-gray-800 px-4 outline-none focus:ring-4 focus:ring-[var(--salon-purple)]/10 transition-all cursor-pointer hover:border-[var(--salon-purple)]/40 appearance-none shadow-sm"
-                  >
-                    <option value="">スタッフを選択してください</option>
-                    {staffList.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--salon-purple)]">
-                    <ChevronRight className="w-5 h-5 rotate-90" />
-                  </div>
-                </div>
               </div>
             </div>
 
