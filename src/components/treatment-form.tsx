@@ -506,89 +506,66 @@ export default function TreatmentForm({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-5 border-t border-[var(--salon-purple)]/5">
-            {/* 担当者 */}
+            {/* 担当者表示 (閲覧・確認用) */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
                 <User className="w-3.5 h-3.5" />
                 担当スタッフ
               </Label>
-              {isEditMode ? (
-                <div className="relative">
-                  <select
-                    value={staffId || "280b61fe-3b23-44ab-91d0-08916f07c88f"}
-                    onChange={(e) => setStaffId(e.target.value)}
-                    className="h-11 w-full bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 px-4 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
-                  >
-                    <option value="280b61fe-3b23-44ab-91d0-08916f07c88f">大谷</option>
-                    <option value="377e02bb-7aea-4eb7-9328-ee9d57ec85e1">須原</option>
-                    {staffList.filter(s => s.name !== '大谷' && s.name !== '須原' && s.name !== '未定').map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ChevronRight className="w-4 h-4 rotate-90" />
-                  </div>
-                </div>
-              ) : (
-                <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800">
-                  {staffList.find(s => s.id === staffId)?.name || "未設定"}
-                </div>
-              )}
+              <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800">
+                {staffList.find(s => s.id === staffId)?.name || "未設定"}
+              </div>
             </div>
 
-            {/* 日付変更 */}
+            {/* 日付・時間変更 (編集モード時のみ詳細表示) */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
                  <Calendar className="w-3.5 h-3.5" />
-                日付の変更
+                施術日時
               </Label>
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  variant="outline"
-                  className={cn(
-                    "h-11 flex-1 font-bold text-xs rounded-xl shadow-sm border-gray-200",
-                    showDatePicker && "border-[var(--salon-yellow)] bg-[var(--salon-yellow)]/5 text-[var(--salon-yellow-dark)]"
-                  )}
-                >
-                  カレンダーを表示
-                </Button>
-                {showDatePicker && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm sm:relative sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none" onClick={() => setShowDatePicker(false)}>
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl border flex flex-col gap-4 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                       <Label className="font-bold text-gray-700">新しい日付を選択</Label>
-                       <Input 
-                        type="date" 
-                        value={currentVisitDate}
-                        onChange={(e) => {
-                          setCurrentVisitDate(e.target.value);
-                          setShowDatePicker(false);
-                        }}
-                        className="h-12 w-64 bg-white border-2 border-[var(--salon-purple)] text-lg font-bold"
-                      />
-                      <Button size="sm" variant="ghost" className="text-gray-400" onClick={() => setShowDatePicker(false)}>閉じる</Button>
+              {isEditMode ? (
+                <div className="flex gap-2">
+                  <Button 
+                    type="button"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    variant="outline"
+                    className={cn(
+                      "h-11 flex-1 font-bold text-xs rounded-xl shadow-sm border-gray-200",
+                      showDatePicker && "border-[var(--salon-yellow)] bg-[var(--salon-yellow)]/5 text-[var(--salon-yellow-dark)]"
+                    )}
+                  >
+                    日付を変更する
+                  </Button>
+                  <Input
+                    type="time"
+                    value={visitTime}
+                    onChange={(e) => setVisitTime(e.target.value)}
+                    className="h-11 w-28 bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800"
+                  />
+                  {showDatePicker && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm sm:relative sm:inset-auto sm:p-0 sm:bg-transparent sm:backdrop-blur-none" onClick={() => setShowDatePicker(false)}>
+                      <div className="bg-white p-6 rounded-2xl shadow-2xl border flex flex-col gap-4 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                         <Label className="font-bold text-gray-700">新しい日付を選択</Label>
+                         <Input 
+                          type="date" 
+                          value={currentVisitDate}
+                          onChange={(e) => {
+                            setCurrentVisitDate(e.target.value);
+                            setShowDatePicker(false);
+                          }}
+                          className="h-12 w-64 bg-white border-2 border-[var(--salon-purple)] text-lg font-bold"
+                        />
+                        <Button size="sm" variant="ghost" className="text-gray-400" onClick={() => setShowDatePicker(false)}>閉じる</Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div className="h-11 flex items-center px-4 bg-gray-50 border rounded-xl text-sm font-black text-gray-800 italic">
+                  {format(visitDate, "yyyy年MM月dd日", { locale: ja })} {visitTime || ""}〜
+                </div>
+              )}
             </div>
-
-            {/* 開始時間の変更 */}
-            {isEditMode && (
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-500 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" />
-                  開始時間の変更
-                </Label>
-                <Input
-                  type="time"
-                  value={visitTime}
-                  onChange={(e) => setVisitTime(e.target.value)}
-                  className="h-11 bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all shadow-sm"
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -783,6 +760,17 @@ export default function TreatmentForm({
                   {treatment.is_next_reservation_line && (
                     <Badge className="bg-[#06C755] text-white border-0 font-bold px-3 py-1">LINE予約済</Badge>
                   )}
+                </div>
+
+                {/* 担当スタッフ追加（閲覧モード） */}
+                <div className="bg-white p-4 rounded-lg border flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 block mb-1">担当スタッフ</span>
+                    <div className="font-black text-lg flex items-center gap-2">
+                       <User className="w-4 h-4 text-[var(--salon-purple)]" />
+                       {staffList.find(s => s.id === staffId)?.name || "未設定"}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1320,6 +1308,29 @@ export default function TreatmentForm({
                   defaultValue={treatment.next_reservation_time || ""}
                   className="h-11 bg-white font-medium"
                 />
+              </div>
+              
+              {/* 担当スタッフ選択（入力モード - 最後に移動） */}
+              <div className="space-y-2 sm:col-span-2 border-t pt-4 mt-2">
+                <Label className="font-bold text-gray-700 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[var(--salon-purple)]" />
+                  担当スタッフを選択
+                </Label>
+                <div className="relative">
+                  <select
+                    value={staffId || ""}
+                    onChange={(e) => setStaffId(e.target.value)}
+                    className="h-12 w-full bg-white border-2 border-[var(--salon-purple)]/20 rounded-xl text-lg font-black text-gray-800 px-4 outline-none focus:ring-4 focus:ring-[var(--salon-purple)]/10 transition-all cursor-pointer hover:border-[var(--salon-purple)]/40 appearance-none shadow-sm"
+                  >
+                    <option value="">スタッフを選択してください</option>
+                    {staffList.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--salon-purple)]">
+                    <ChevronRight className="w-5 h-5 rotate-90" />
+                  </div>
+                </div>
               </div>
             </div>
 
