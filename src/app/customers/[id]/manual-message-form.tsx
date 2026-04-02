@@ -49,7 +49,7 @@ export default function ManualMessageForm({ customerId, customerName }: ManualMe
           <Button 
             size="sm" 
             variant="outline" 
-            className="h-10 px-4 font-bold border-[var(--salon-purple)] text-[var(--salon-purple)] bg-[var(--salon-purple)]/5 hover:bg-[var(--salon-purple)] hover:text-white transition-all order-3 sm:order-2"
+            className="h-10 px-4 font-bold border-[#c484d4] text-[#c484d4] bg-white hover:bg-[#c484d4] hover:text-white transition-all order-3 sm:order-2"
           >
             <Send className="w-4 h-4 mr-2" />
             個別LINE送信
@@ -76,7 +76,7 @@ export default function ManualMessageForm({ customerId, customerName }: ManualMe
             />
             <Button 
               size="sm" 
-              className="w-full font-bold bg-[var(--salon-purple)] hover:bg-[var(--salon-purple-dark)]"
+              className="w-full font-bold bg-[#c484d4] hover:bg-[#b06ec1] text-white"
               onClick={handleSend}
               disabled={isSending || !text.trim()}
             >
