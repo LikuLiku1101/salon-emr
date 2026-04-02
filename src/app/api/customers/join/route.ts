@@ -12,17 +12,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "お名前と電話番号は必須です" }, { status: 400 });
     }
 
-    // 電話番号の正規化（ハイフンやスペースを除去）
-    const normalizedPhone = phone.replace(/[-\s]/g, '');
+    // 電話番号の正規化（数字以外を全て除去）
+    const normalizedPhone = phone.replace(/\D/g, '');
 
-    // 1. 電話番号が一致する既存顧客がいるかチェック
-    const { data: existing, error: fetchError } = await supabase
+    // 一旦、電話番号で候補を取得
+    const { data: candidates, error: fetchError } = await supabase
       .from('customers')
-      .select('id, line_user_id')
-      .or(`phone.eq.${normalizedPhone},phone.eq.${phone}`)
-      .maybeSingle();
+      .select('id, name, phone, line_user_id');
 
     if (fetchError) throw fetchError;
+
+    // 名前と電話番号の両方を見て、既存顧客を特定する
+    const existing = candidates?.find(c => {
+      const dbPhone = c.phone?.replace(/\D/g, '');
+      const dbName = c.name?.replace(/\s/g, '');
+      const inputName = name.replace(/\s/g, '');
+      
+      // 電話番号が一致、または（お名前(スペース抜き)と電話番号の両方が一致）
+      return dbPhone === normalizedPhone || (dbName === inputName && dbPhone === normalizedPhone);
+    });
 
     if (existing) {
       // 2a. 既存の場合：情報を更新（特にLINE IDを紐付け）
