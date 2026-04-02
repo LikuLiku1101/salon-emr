@@ -145,6 +145,7 @@ export async function saveTreatmentDetails(
         visit_count: nextVisitCount,
         reserved_content: reserved_content || current.reserved_content,
         contract_id: updateData.contract_id || current.contract_id,
+        staff_id: staff_id || current.staff_id, // 担当スタッフを引き継ぐ
         status: "通常"
       }).select().single();
 
