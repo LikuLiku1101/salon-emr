@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from "@supabase/supabase-js";
-import { sendLineMessage } from '@/lib/line';
+import { sendLineMessage, sendAdminNotification } from '@/lib/line';
 import { format } from "date-fns";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -34,6 +34,7 @@ export async function GET(request: Request) {
       if (customer?.line_user_id) {
         const message = `${customer.name}様\n本日はご来店ありがとうございました。\n当店の施術はいかがだったでしょうか？何かお気づきの点がございましたら、こちらのLINEからご連絡頂ければと思います。\nまた、施術後は\n・過度な飲酒はお控えください。\n・赤みが出た場合は、固く搾ったタオルなどで冷やしていただき、十分に保湿をお願い致します。\n\n次回の施術は本日より概ね20日以降でのご予約をお願いします。\nご連絡をお待ちしております。`;
         await sendLineMessage(customer.line_user_id, message);
+        await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（お礼）\n\n${message}`);
         await supabase.from('treatments').update({ evening_notified: true }).eq('id', t.id);
         results.push({ customer: customer.name, type: 'evening', status: 'success' });
       }
@@ -68,6 +69,7 @@ export async function GET(request: Request) {
         if (count === 0) {
           const message = `${customer.name}さま\nお世話になります。SHINEです😊\n施術後のトラブルなどございませんでしたでしょうか？\n\n前回の脱毛から概ね2週間が経ちますので、そろそろ次回のご予約はいかがかなと思いご連絡させていただきました✨\n${customer.name}さまからのご連絡心よりお待ちしております😊`;
           await sendLineMessage(customer.line_user_id, message);
+          await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（14日後フォロー）\n\n${message}`);
           results.push({ customer: customer.name, type: 'followup', status: 'success' });
         }
         await supabase.from('treatments').update({ followup_notified: true }).eq('id', t.id);
@@ -95,6 +97,7 @@ export async function GET(request: Request) {
         const timeStr = t.visit_time ? t.visit_time.substring(0, 5) : "--:--";
         const message = `${customer.name}様こんばんは😊\n脱毛サロンSHINEです。\n明日のご予約の確認を送らせていただきます☺︎ご返信不要です🌿\n\n日時：${dateStr} ${timeStr}～\n内容：${t.reserved_content || "施術内容未定"}\n部屋番号は【101】となります。お間違いの無いようにお気を付けください。\n\nお気をつけてお越しくださいませ😊`;
         await sendLineMessage(customer.line_user_id, message);
+        await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（予約前日リマインド）\n\n${message}`);
         await supabase.from('treatments').update({ reminder_notified: true }).eq('id', t.id);
         results.push({ customer: customer.name, type: 'reminder', status: 'success' });
       }

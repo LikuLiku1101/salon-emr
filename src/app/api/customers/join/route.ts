@@ -42,9 +42,10 @@ export async function POST(request: Request) {
       // 3a. LINE連携の挨拶メッセージ
       if (line_user_id) {
         try {
-          const { sendLineMessage } = await import("@/lib/line");
+          const { sendLineMessage, sendAdminNotification } = await import("@/lib/line");
           const welcomeMsg = `${name}様\nありがとうございます。LINE連携が完了いたしました😊`;
           await sendLineMessage(line_user_id, welcomeMsg);
+          await sendAdminNotification(`【お客様がLINE連携を完了しました】\n対象：${name}様 (既存顧客からの紐付け)`);
         } catch (err) {
           console.error("Welcome message failed:", err);
         }
@@ -73,9 +74,10 @@ export async function POST(request: Request) {
       // 3b. 新規登録の感謝メッセージ
       if (line_user_id) {
         try {
-          const { sendLineMessage } = await import("@/lib/line");
+          const { sendLineMessage, sendAdminNotification } = await import("@/lib/line");
           const welcomeMsg = `${name}様\nありがとうございます。LINE連携が完了いたしました😊`;
           await sendLineMessage(line_user_id, welcomeMsg);
+          await sendAdminNotification(`【新規顧客が自分で登録しました】\nお名前：${name}様 (${gender || "性別不明"})\n電話番号：${phone}`);
         } catch (err) {
           console.error("Welcome message failed:", err);
         }

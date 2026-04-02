@@ -29,3 +29,20 @@ export async function sendLineMessage(to: string, text: string) {
   
   return await response.json();
 }
+
+/**
+ * 管理者（オーナー）への通知用関数
+ */
+export async function sendAdminNotification(text: string) {
+  const adminId = process.env.ADMIN_LINE_USER_ID;
+  if (!adminId) {
+    console.warn('ADMIN_LINE_USER_ID is not set. Admin notification skipped.');
+    return;
+  }
+  
+  try {
+    await sendLineMessage(adminId, text);
+  } catch (err) {
+    console.error('Failed to send admin notification:', err);
+  }
+}

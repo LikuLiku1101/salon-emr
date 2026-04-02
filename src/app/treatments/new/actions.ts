@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { sendLineMessage, sendAdminNotification } from "@/lib/line";
 
 export async function createReservation(formData: FormData) {
   const supabase = await createClient();
@@ -36,6 +37,9 @@ export async function createReservation(formData: FormData) {
 
     if (customerError) throw new Error("Failed to create customer");
     customer_id = newCustomer.id;
+
+    // 管理者に新規顧客登録を通知 (予約画面から)
+    await sendAdminNotification(`【新規顧客が登録されました(予約画面より)】\nお名前：${new_name}様\n電話番号：${new_phone || "未登録"}`);
   }
 
   if (!customer_id || !visit_date) {
@@ -71,6 +75,12 @@ export async function createReservation(formData: FormData) {
     throw new Error("Failed to create reservation");
   }
 
+  // 管理者に新規予約を通知
+  const { data: bookingCustomer } = await supabase.from("customers").select("name").eq("id", customer_id).single();
+  const dateStrShort = format(new Date(visit_date), "M月d日");
+  const timeStrShort = visit_time ? visit_time.substring(0, 5) : "時間未定";
+  await sendAdminNotification(`【新しい予約が登録されました】\nお客様：${bookingCustomer?.name || "不明"}様\n日時：${dateStrShort} ${timeStrShort}\n内容：${reserved_content || "未定"}`);
+
   // LINE自動送信
   try {
     const { data: customer } = await supabase
@@ -95,6 +105,7 @@ export async function createReservation(formData: FormData) {
       }
 
       await sendLineMessage(customer.line_user_id, message);
+      await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（予約確定通知）\n\n${message}`);
       
       // 送信済みフラグを更新
       await supabase.from("treatments").update({ line_notified: true }).eq("id", treatment.id);

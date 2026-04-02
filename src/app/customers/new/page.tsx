@@ -25,12 +25,16 @@ export default async function NewCustomerPage() {
     const { data, error } = await supabase
       .from("customers")
       .insert([{ name, name_kana, gender, phone, email }])
-      .select();
+      .select().single();
 
     if (error) {
       console.error(error);
       return;
     }
+
+    // 管理者に新規顧客登録を通知
+    const { sendAdminNotification } = await import("@/lib/line");
+    await sendAdminNotification(`【新規顧客が登録されました】\nお名前：${name}様 (${gender})\n電話番号：${phone || "未登録"}`);
 
     // 成功したらキャッシュを更新して一覧画面へ戻る
     revalidatePath("/customers");

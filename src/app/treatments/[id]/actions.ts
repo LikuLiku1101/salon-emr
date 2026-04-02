@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { sendLineMessage, sendAdminNotification } from "@/lib/line";
 
 export async function saveTreatmentDetails(
   treatmentId: string, 
@@ -166,6 +167,7 @@ export async function saveTreatmentDetails(
 
           const nextMessage = `${customer.name}様、本日はご来店ありがとうございました！✨\n\n次回のご予約を以下の通り承っております：\n日時：${nextDateStr} ${nextTimeStr}\n\nまたのお越しを心よりお待ちしております。`;
           await sendLineMessage(customer.line_user_id, nextMessage);
+          await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（次回予約作成）\n\n${nextMessage}`);
           
           // 次回予約に対しても通知済みフラグを付与
           await supabase.from("treatments").update({ line_notified: true }).eq("id", nextTreatment.id);
@@ -211,8 +213,9 @@ export async function sendTreatmentLineMessage(treatmentId: string) {
   }
 
   try {
-    const { sendLineMessage } = await import("@/lib/line");
+    const { sendLineMessage, sendAdminNotification } = await import("@/lib/line");
     await sendLineMessage(treatment.customers.line_user_id, message);
+    await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customerName}様（カルテ保存お礼）\n\n${message}`);
     
     // 通知済みフラグを更新
     await supabase
