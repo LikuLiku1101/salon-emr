@@ -802,13 +802,38 @@ export default function TreatmentForm({
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {imagePaths.map((path, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border bg-gray-50 flex items-center justify-center">
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border bg-gray-50 flex items-center justify-center group">
                       <img 
                         src={getPublicUrl(path)} 
                         alt={`施術写真 ${idx + 1}`}
                         className="object-cover w-full h-full cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => window.open(getPublicUrl(path), '_blank')}
                       />
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm("この写真を削除してもよろしいですか？")) {
+                            const newPaths = imagePaths.filter(p => p !== path);
+                            setImagePaths(newPaths);
+                            // 閲覧モードでも即座にDB保存を試みる（簡易編集機能）
+                            const formData = new FormData();
+                            formData.append("image_paths", JSON.stringify(newPaths));
+                            // 既存の施術詳細を保持して保存
+                            const detailsArray = treatmentDetails.map(d => ({
+                              body_part: d.body_part,
+                              machine_type: d.machine_type,
+                              power_level: d.power_level
+                            }));
+                            await saveTreatmentDetails(treatment.id, formData, detailsArray);
+                            toast.success("写真を削除しました");
+                          }
+                        }}
+                        className="absolute top-1.5 right-1.5 bg-red-500/80 hover:bg-red-600 text-white p-1.5 rounded-full shadow-md z-10 transition-colors"
+                        title="画像を削除"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1093,9 +1118,10 @@ export default function TreatmentForm({
                 <button
                   type="button"
                   onClick={() => removeImage(path)}
-                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                  className="absolute top-1.5 right-1.5 bg-red-500 text-white p-1.5 rounded-full transition-all shadow-md z-10"
+                  title="削除"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
