@@ -321,7 +321,6 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         /* TimeTree風カスタム設定 */
         .rbc-month-view .rbc-event { display: none !important; }
         .rbc-month-view .rbc-show-more { display: none !important; }
-        .rbc-month-view .rbc-row-content { pointer-events: none; z-index: 1; }
         
         .rbc-month-view { 
           border-color: var(--color-zinc-100); 
@@ -329,7 +328,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
           border: none !important; 
         }
         
-        .rbc-month-row { border-top: 1px solid #f1f1f1 !important; }
+        .rbc-month-row { border-top: 1px solid #f1f1f1 !important; overflow: hidden !important; }
         .rbc-day-bg { border-left: 1px solid #f1f1f1 !important; }
         .rbc-header { padding: 4px; font-weight: 800; font-size: 0.7rem; border-bottom: 1px solid #f1f1f1 !important; border-left: 1px solid #f1f1f1 !important; }
         .rbc-header:first-child { border-left: none !important; }
@@ -341,17 +340,26 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         .rbc-off-range-bg { background-color: #fafafa !important; }
         .rbc-today { background-color: rgba(149, 21, 179, 0.03) !important; }
         
-        /* セル内部をスクロール可能にする */
-        .rbc-row-content { height: 100%; }
-        .rbc-row { height: 100%; }
-        .rbc-date-cell { 
+        /* セル内部をスクロール可能にするための安全なCSS */
+        .rbc-month-view .rbc-row-content { 
+          height: 100%; 
+          display: flex; 
+          flex-direction: column; 
+          z-index: 1;
+          pointer-events: none; /* 下の背景クリックを透過させるため */
+        }
+        .rbc-month-view .rbc-row-content > .rbc-row:first-child {
+          flex: 1;
+          height: 100%;
+        }
+        .rbc-month-view .rbc-date-cell { 
           padding: 0 !important; 
-          pointer-events: auto; 
+          pointer-events: auto; /* イベントクリックを有効化 */
           height: 100%;
           overflow-y: auto;
           scrollbar-width: none; /* Firefox */
         }
-        .rbc-date-cell::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+        .rbc-month-view .rbc-date-cell::-webkit-scrollbar { display: none; } /* Chrome, Safari */
         
         .rbc-toolbar { display: none; } /* デフォルトのツールバーを隠す */
         
