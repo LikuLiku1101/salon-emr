@@ -2,13 +2,14 @@
 
 import { LoadingLink } from "@/components/loading-link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, User, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, User, LogOut, TrendingUp } from "lucide-react";
 import { logout } from "@/app/login/actions";
 
 const navItems = [
   { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { name: "顧客・管理", href: "/customers", icon: Users },
   { name: "予約・カルテ", href: "/treatments", icon: CalendarDays },
+  { name: "経営者用", href: "/dashboard", icon: TrendingUp },
 ];
 
 export function MainNav({ staffName }: { staffName?: string }) {
@@ -27,6 +28,9 @@ export function MainNav({ staffName }: { staffName?: string }) {
           </LoadingLink>
           <div className="flex gap-4 sm:gap-6">
             {navItems.map((item) => {
+              if (item.name === "経営者用" && !staffName?.includes("守屋")) {
+                return null;
+              }
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
