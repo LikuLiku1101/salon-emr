@@ -60,7 +60,7 @@ export default async function DashboardPage({
   // 1. 今月の全カルテ (売上が0のものも含む。出勤日数の計算用)
   const { data: allTreatments } = await supabase
     .from("treatments")
-    .select("payment_amount, visit_date, staff(name)")
+    .select("payment_amount, payment_status, visit_date, staff(name), contracts(total_amount, installments)")
     .gte("visit_date", firstDay)
     .lte("visit_date", lastDay);
 
@@ -71,7 +71,19 @@ export default async function DashboardPage({
   const today = new Date().toISOString().split('T')[0];
 
   allTreatments?.forEach(t => {
-    const amount = t.payment_amount || 0;
+    // 支払い1回分の金額を計算（コース一括払いの場合は 総額÷回数）
+    // @ts-ignore
+    const contractTotal = t.contracts?.total_amount || 0;
+    // @ts-ignore
+    const contractInstallments = t.contracts?.installments || 1;
+    
+    let amount = t.payment_amount || 0;
+    
+    // 一括支払い済みの0円カルテの場合、コース単価を歩合・売上計算用に適用
+    if (contractTotal > 0 && contractInstallments > 1 && (t.payment_status || '').includes('一括')) {
+      amount = Math.floor(contractTotal / contractInstallments);
+    }
+
     const staffName = Array.isArray(t.staff) 
       ? t.staff[0]?.name 
       : (t.staff as any)?.name || "担当不明";
