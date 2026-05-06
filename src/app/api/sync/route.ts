@@ -43,7 +43,7 @@ export async function POST() {
         payment_method,
         reserved_content,
         customers ( name ),
-        contracts ( course_name, installments ),
+        contracts ( course_name, installments, total_amount ),
         staff ( name )
       `)
       .not('payment_status', 'is', null)
@@ -69,6 +69,8 @@ export async function POST() {
       const courseName = t.contracts?.course_name || t.reserved_content || '';
       // @ts-ignore
       const installments = t.contracts?.installments || 1;
+      // @ts-ignore
+      const totalAmount = t.contracts?.total_amount || t.payment_amount || 0;
       
       // 日付と曜日をフォーマット（例: 4月24日 金）
       const dateObj = new Date(t.visit_date);
@@ -83,10 +85,10 @@ export async function POST() {
         t.payment_status || '',// D: 支払い形式 (都度など)
         t.payment_method || '',// E: 支払い方法 (現金/カード)
         t.visit_count || 1,    // F: 〇回目
-        t.payment_amount || 0, // G: 支払い額
+        totalAmount,           // G: 支払い額 (コース総額 or 都度支払い額)
         staffName,             // H: 施術者
-        t.payment_amount || 0, // I: 支払い1回（スタッフ売上計算用）
-        installments,          // J: 分割回数
+        totalAmount,           // I: 支払い1回（スタッフ売上計算用）
+        installments,          // J: 分割回数 (コース回数)
         t.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
     });
