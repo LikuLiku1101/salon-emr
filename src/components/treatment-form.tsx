@@ -32,6 +32,7 @@ import {
   ImageIcon,
   Trash2,
   ChevronRight,
+  ChevronLeft,
   Calendar,
   Clock
 } from "lucide-react";
@@ -121,12 +122,14 @@ export default function TreatmentForm({
   treatment, 
   treatmentDetails,
   staffList,
-  visitInfo
+  visitInfo,
+  pagination
 }: { 
   treatment: any, 
   treatmentDetails: TreatmentDetail[],
   staffList: { id: string, name: string }[],
-  visitInfo: VisitInfo
+  visitInfo: VisitInfo,
+  pagination?: { prevId: string | null; nextId: string | null; }
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 予約時の内容（reserved_content）から、部位リストを復元
@@ -444,15 +447,39 @@ export default function TreatmentForm({
   return (
     <div className="pb-24 max-w-4xl mx-auto bg-white min-h-screen relative text-slate-800"> 
       
-      {/* 戻るボタン */}
-      <div className="p-4 flex items-center gap-4 border-b">
-        <Link href="/treatments" className="inline-flex items-center text-sm font-medium hover:underline text-[var(--salon-purple)] shrink-0">
+      {/* 戻るボタンと前後の移動 */}
+      <div className="p-4 flex items-center justify-between border-b">
+        <Link href="/treatments" className="inline-flex items-center text-sm font-medium hover:underline text-[var(--salon-purple)] shrink-0 w-20">
           <ArrowLeft className="mr-1 h-4 w-4" />
           戻る
         </Link>
-        <span className="font-semibold text-lg flex-1 text-center pr-12">
+        
+        <span className="font-semibold text-lg flex-1 text-center truncate">
           {isEditMode ? "施術シート入力" : "施術記録（来店履歴）"}
         </span>
+
+        <div className="flex items-center justify-end gap-1 shrink-0 w-20">
+          <Link 
+            href={pagination?.prevId ? `/treatments/${pagination.prevId}` : '#'} 
+            title="前の記録"
+            className={cn(
+              "p-2 rounded-md transition-colors", 
+              pagination?.prevId ? "hover:bg-gray-100 text-gray-700" : "text-gray-200 pointer-events-none"
+            )}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <Link 
+            href={pagination?.nextId ? `/treatments/${pagination.nextId}` : '#'} 
+            title="次の記録"
+            className={cn(
+              "p-2 rounded-md transition-colors", 
+              pagination?.nextId ? "hover:bg-gray-100 text-gray-700" : "text-gray-200 pointer-events-none"
+            )}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Link>
+        </div>
       </div>
 
       {isSubmitting && <LoadingSpinner />}

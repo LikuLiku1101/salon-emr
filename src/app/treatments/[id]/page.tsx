@@ -58,6 +58,48 @@ export default async function TreatmentDetailPage({
     contractVisitCount = pastTreatments.filter(t => t.contract_id === treatment.contract_id).length;
   }
 
+  // 4. 前後の施術記録（ページネーション）のIDを取得
+  // まず同じ日のカルテを取得
+  const { data: sameDayTreatments } = await supabase
+    .from("treatments")
+    .select("id, visit_time, created_at")
+    .eq("visit_date", treatment.visit_date)
+    .order("visit_time", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  let prevId = null;
+  let nextId = null;
+
+  if (sameDayTreatments) {
+    const currentIndex = sameDayTreatments.findIndex(t => t.id === treatment.id);
+    if (currentIndex > 0) prevId = sameDayTreatments[currentIndex - 1].id;
+    if (currentIndex < sameDayTreatments.length - 1) nextId = sameDayTreatments[currentIndex + 1].id;
+  }
+
+  // 同じ日に前のカルテがない場合は、過去の日付から最新を1件取得
+  if (!prevId) {
+    const { data: prevDayTreatments } = await supabase
+      .from("treatments")
+      .select("id")
+      .lt("visit_date", treatment.visit_date)
+      .order("visit_date", { ascending: false })
+      .order("visit_time", { ascending: false })
+      .limit(1);
+    if (prevDayTreatments && prevDayTreatments.length > 0) prevId = prevDayTreatments[0].id;
+  }
+
+  // 同じ日に次のカルテがない場合は、未来の日付から最古を1件取得
+  if (!nextId) {
+    const { data: nextDayTreatments } = await supabase
+      .from("treatments")
+      .select("id")
+      .gt("visit_date", treatment.visit_date)
+      .order("visit_date", { ascending: true })
+      .order("visit_time", { ascending: true })
+      .limit(1);
+    if (nextDayTreatments && nextDayTreatments.length > 0) nextId = nextDayTreatments[0].id;
+  }
+
   // クライアントコンポーネント（スマホ最適化UI）にデータを渡して描画
   return (
     <TreatmentForm 
@@ -72,6 +114,7 @@ export default async function TreatmentDetailPage({
         lastVisitDate: previousVisit?.visit_date || null,
         lastVisitId: previousVisit?.id || null
       }}
+      pagination={{ prevId, nextId }}
     />
   );
 }
