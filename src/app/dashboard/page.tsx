@@ -68,6 +68,8 @@ export default async function DashboardPage({
   const staffWorkDays: Record<string, Set<string>> = {};
   let totalSales = 0;
 
+  const today = new Date().toISOString().split('T')[0];
+
   allTreatments?.forEach(t => {
     const amount = t.payment_amount || 0;
     const staffName = Array.isArray(t.staff) 
@@ -84,7 +86,8 @@ export default async function DashboardPage({
       staffSales[staffName] += amount;
     }
     
-    if (t.visit_date) {
+    // 出勤日数は「今日以前（すでに勤務した日）」のみカウントする
+    if (t.visit_date && t.visit_date <= today) {
       staffWorkDays[staffName].add(t.visit_date);
     }
   });
@@ -125,7 +128,6 @@ export default async function DashboardPage({
 
   // 2. 今月の見込み売上 (未来の予約)
   // 当月内の予約（初日以降を全て見込みの元データとし、本来は決済済みを引くべきだが、シンプルに「未決済の未来の予約」なら今日以降にする）
-  const today = new Date().toISOString().split('T')[0];
   const searchStartDay = today > firstDay ? today : firstDay;
 
   const { data: futureReservations } = await supabase
