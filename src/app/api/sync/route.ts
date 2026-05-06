@@ -37,7 +37,9 @@ export async function POST() {
         id,
         customer_id,
         visit_date,
+        visit_count,
         payment_amount,
+        payment_status,
         payment_method,
         reserved_content,
         customers ( name ),
@@ -56,7 +58,7 @@ export async function POST() {
       return NextResponse.json({ success: true, count: 0, message: '新しいデータはありませんでした。' });
     }
 
-    // 6. スプレッドシート用にデータを整形
+    // 6. スプレッドシート用にデータを整形（実際のシートのフォーマットに合わせる）
     const rows = newPayments.map(t => {
       // @ts-ignore
       const staffName = Array.isArray(t.staff) ? t.staff[0]?.name : (t.staff as any)?.name || '';
@@ -64,20 +66,23 @@ export async function POST() {
       const customerName = t.customers?.name || '';
       // @ts-ignore
       const courseName = t.contracts?.course_name || t.reserved_content || '';
-      // @ts-ignore
-      const installments = t.contracts?.installments || 1;
+      
+      // 曜日を計算
+      const dateObj = new Date(t.visit_date);
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const dayOfWeek = days[dateObj.getDay()];
       
       return [
         t.visit_date,          // A: 日付
-        customerName,          // B: 氏名
-        staffName,             // C: 担当者
+        dayOfWeek,             // B: 曜日
+        customerName,          // C: 氏名
         courseName,            // D: メニュー
-        '',                    // E: (空欄)
-        t.payment_amount || 0, // F: 売上金額
-        t.payment_method || '',// G: 支払方法
-        '',                    // H: (空欄)
-        '',                    // I: (空欄)
-        installments,          // J: 分割回数
+        t.payment_status || '',// E: 支払種別 (都度など)
+        t.payment_method || '',// F: 支払方法 (現金/カード)
+        t.visit_count || 1,    // G: 来店回数
+        t.payment_amount || 0, // H: 売上金額
+        staffName,             // I: 担当者
+        t.payment_amount || 0, // J: 売上金額（スタッフ売上計算用）
         t.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
     });
