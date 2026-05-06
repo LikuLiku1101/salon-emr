@@ -57,30 +57,71 @@ export default async function DashboardPage({
   const firstDay = `${currentYear}-${mm}-01`;
   const lastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
 
-  // 1. 今月の確定売上 (カルテに記録された支払金額)
-  const { data: completedTreatments } = await supabase
+  // 1. 今月の全カルテ (売上が0のものも含む。出勤日数の計算用)
+  const { data: allTreatments } = await supabase
     .from("treatments")
     .select("payment_amount, visit_date, staff(name)")
     .gte("visit_date", firstDay)
-    .lte("visit_date", lastDay)
-    .gt("payment_amount", 0);
+    .lte("visit_date", lastDay);
 
   const staffSales: Record<string, number> = {};
+  const staffWorkDays: Record<string, Set<string>> = {};
   let totalSales = 0;
 
-  completedTreatments?.forEach(t => {
+  allTreatments?.forEach(t => {
     const amount = t.payment_amount || 0;
-    totalSales += amount;
-    
     const staffName = Array.isArray(t.staff) 
       ? t.staff[0]?.name 
       : (t.staff as any)?.name || "担当不明";
-    
+      
     if (!staffSales[staffName]) {
       staffSales[staffName] = 0;
+      staffWorkDays[staffName] = new Set();
     }
-    staffSales[staffName] += amount;
+    
+    if (amount > 0) {
+      totalSales += amount;
+      staffSales[staffName] += amount;
+    }
+    
+    if (t.visit_date) {
+      staffWorkDays[staffName].add(t.visit_date);
+    }
   });
+
+  // 経費定数
+  const FIXED_COSTS = { rent: 94480, machine: 16800 };
+
+  // スタッフ設定
+  const STAFF_CONFIG: Record<string, { commissionRate: number, transportFee: number }> = {
+    "大谷": { commissionRate: 0.4, transportFee: 1000 },
+    "山村": { commissionRate: 0.4, transportFee: 1000 },
+    "須原": { commissionRate: 0.3, transportFee: 334 }
+  };
+
+  let totalPayroll = 0;
+  let totalTransport = 0;
+  
+  const staffDetails = Object.keys(staffSales)
+    .filter(name => name !== '担当不明' && staffSales[name] !== undefined)
+    .map(staffName => {
+      const sales = staffSales[staffName];
+      const days = staffWorkDays[staffName].size;
+      const config = STAFF_CONFIG[staffName] || { commissionRate: 0, transportFee: 0 };
+      
+      const payroll = Math.floor(sales * config.commissionRate);
+      const transport = days * config.transportFee;
+      
+      totalPayroll += payroll;
+      totalTransport += transport;
+      
+      return { name: staffName, sales, days, payroll, transport };
+    })
+    .sort((a, b) => b.sales - a.sales);
+
+  const grossProfit = totalSales - totalPayroll - totalTransport;
+  const operatingProfit = grossProfit - FIXED_COSTS.rent - FIXED_COSTS.machine;
+  const profitMargin = totalSales > 0 ? (operatingProfit / totalSales) * 100 : 0;
 
   // 2. 今月の見込み売上 (未来の予約)
   // 当月内の予約（初日以降を全て見込みの元データとし、本来は決済済みを引くべきだが、シンプルに「未決済の未来の予約」なら今日以降にする）
@@ -164,28 +205,101 @@ export default async function DashboardPage({
            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* スタッフ別売上 */}
-          <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-6">
-            <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-              <Users className="w-6 h-6 text-[var(--salon-purple)]" />
-              スタッフ別 売上実績
-            </h3>
+        {/* 経営分析・収支レポート */}
+        <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-8">
+          <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-[var(--salon-purple)]" />
+            経営分析・収支レポート
+          </h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* スタッフ給与・交通費詳細 */}
             <div className="space-y-4">
-              {Object.entries(staffSales).sort((a, b) => b[1] - a[1]).map(([staffName, amount]) => (
-                <div key={staffName} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="font-bold text-gray-700">{staffName}</div>
-                  <div className="font-black text-xl text-gray-900">¥{amount.toLocaleString()}</div>
+              <h4 className="text-sm font-bold text-gray-400 border-b pb-2">スタッフ別 報酬内訳</h4>
+              <div className="space-y-3">
+                {staffDetails.map(staff => (
+                  <div key={staff.name} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-gray-700 text-lg">{staff.name}</span>
+                      <span className="text-xs font-bold text-gray-400">
+                        売上: ¥{staff.sales.toLocaleString()} <br className="sm:hidden" />({staff.days}日出勤)
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 font-bold">給与 (歩合)</span>
+                      <span className="font-bold">¥{staff.payroll.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 font-bold">交通費</span>
+                      <span className="font-bold">¥{staff.transport.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+                {staffDetails.length === 0 && (
+                  <p className="text-sm text-gray-400 font-bold text-center py-8 bg-gray-50 rounded-xl border border-dashed">
+                    この月の稼働データはありません
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* 利益計算テーブル */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-gray-400 border-b pb-2">店舗利益計算</h4>
+              <div className="bg-slate-900 text-white rounded-xl p-5 sm:p-6 space-y-4 shadow-lg shadow-slate-900/10">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300 font-bold">総売上</span>
+                  <span className="font-bold text-lg">¥{totalSales.toLocaleString()}</span>
                 </div>
-              ))}
-              {Object.keys(staffSales).length === 0 && (
-                <p className="text-sm text-gray-400 font-bold text-center py-8 bg-gray-50 rounded-xl border border-dashed">
-                  この月の売上データはありません
-                </p>
-              )}
+                
+                <div className="pt-2 border-t border-slate-700 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-red-300">給与合計</span>
+                    <span>- ¥{totalPayroll.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-red-300">交通費合計</span>
+                    <span>- ¥{totalTransport.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center font-bold text-green-400 pt-3 border-t border-slate-700/50 mt-2">
+                    <span>店粗利</span>
+                    <span className="text-lg">¥{grossProfit.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-700 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-red-300">家賃</span>
+                    <span>- ¥{FIXED_COSTS.rent.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-red-300">マシンリース</span>
+                    <span>- ¥{FIXED_COSTS.machine.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-600">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1 font-bold">最終営業利益</div>
+                      <div className={`text-3xl font-black tracking-tighter ${operatingProfit < 0 ? 'text-red-400' : 'text-white'}`}>
+                        ¥{operatingProfit.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-400 mb-1 font-bold">利益率</div>
+                      <div className={`text-xl font-bold ${profitMargin < 0 ? 'text-red-400' : 'text-white'}`}>
+                        {profitMargin.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* スプレッドシート連携エリア */}
           <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-6">
             <div className="flex items-center gap-4">
