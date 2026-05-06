@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/loading-spinner';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +83,14 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="w-full h-12 bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 text-white font-black text-base rounded-none transition-all active:scale-[0.98]"
             >
-              ログイン
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ログイン中...
+                </>
+              ) : (
+                "ログイン"
+              )}
             </Button>
           </form>
 

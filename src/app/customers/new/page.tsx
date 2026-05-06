@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,9 +101,9 @@ export default async function NewCustomerPage() {
                 <Button type="button" variant="ghost" className="font-bold">
                   <Link href="/customers" className="text-inherit">キャンセル</Link>
                 </Button>
-                <Button type="submit" className="bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 font-black h-12 px-8 rounded-xl shadow-lg shadow-purple-100">
+                <SubmitButton pendingText="登録中..." className="bg-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/90 font-black h-12 px-8 rounded-xl shadow-lg shadow-purple-100">
                   顧客を登録する
-                </Button>
+                </SubmitButton>
               </div>
             </form>
           </CardContent>
