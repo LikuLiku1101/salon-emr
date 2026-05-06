@@ -46,7 +46,7 @@ export async function POST() {
         contracts ( course_name, installments ),
         staff ( name )
       `)
-      .gt('payment_amount', 0)
+      .not('payment_status', 'is', null)
       .gte('visit_date', '2026-05-01')
       .order('visit_date', { ascending: true });
 
