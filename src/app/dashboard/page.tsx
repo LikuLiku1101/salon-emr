@@ -127,24 +127,81 @@ export default async function DashboardPage({
   const profitMargin = totalSales > 0 ? (operatingProfit / totalSales) * 100 : 0;
 
   // 2. 今月の見込み売上 (未来の予約)
-  // 当月内の予約（初日以降を全て見込みの元データとし、本来は決済済みを引くべきだが、シンプルに「未決済の未来の予約」なら今日以降にする）
   const searchStartDay = today > firstDay ? today : firstDay;
 
   const { data: futureReservations } = await supabase
     .from("treatments")
-    .select("id, reserved_content, customers(gender)")
+    .select("id, reserved_content, visit_date, customers(gender), staff(name)")
     .gte("visit_date", searchStartDay)
     .lte("visit_date", lastDay);
     
   const reservationCount = futureReservations?.length || 0;
   
   let estimatedSales = 0;
+  
+  // 見込み込みのデータ（Projected）を計算
+  let projectedTotalSales = totalSales;
+  const projectedStaffSales = { ...staffSales };
+  const projectedStaffWorkDays: Record<string, Set<string>> = {};
+  
+  // Setのディープコピー
+  for (const [staff, days] of Object.entries(staffWorkDays)) {
+    projectedStaffWorkDays[staff] = new Set(days);
+  }
+
   if (futureReservations) {
     for (const res of futureReservations) {
       const gender = Array.isArray(res.customers) ? res.customers[0]?.gender : (res.customers as any)?.gender;
-      estimatedSales += calculateEstimatedPrice(res.reserved_content, gender);
+      const price = calculateEstimatedPrice(res.reserved_content, gender);
+      
+      const staffName = Array.isArray(res.staff) ? res.staff[0]?.name : (res.staff as any)?.name || "担当不明";
+      
+      estimatedSales += price;
+      projectedTotalSales += price;
+      
+      if (!projectedStaffSales[staffName]) projectedStaffSales[staffName] = 0;
+      projectedStaffSales[staffName] += price;
+      
+      if (res.visit_date) {
+        if (!projectedStaffWorkDays[staffName]) projectedStaffWorkDays[staffName] = new Set();
+        projectedStaffWorkDays[staffName].add(res.visit_date);
+      }
     }
   }
+
+  // タブの判定
+  const activeTab = resolvedParams.tab === 'projected' ? 'projected' : 'actual';
+
+  // 選択されたタブに応じたデータを決定
+  const displayTotalSales = activeTab === 'projected' ? projectedTotalSales : totalSales;
+  const displayStaffSales = activeTab === 'projected' ? projectedStaffSales : staffSales;
+  const displayStaffWorkDays = activeTab === 'projected' ? projectedStaffWorkDays : staffWorkDays;
+
+  let displayTotalPayroll = 0;
+  let displayTotalTransport = 0;
+
+  const displayStaffDetails = Object.keys(displayStaffSales)
+    .filter(name => name !== '担当不明' && displayStaffSales[name] !== undefined)
+    .map(staffName => {
+      const sales = displayStaffSales[staffName];
+      const days = displayStaffWorkDays[staffName]?.size || 0;
+      const config = STAFF_CONFIG[staffName] || { commissionRate: 0, transportFee: 0 };
+      
+      const payroll = Math.floor(sales * config.commissionRate);
+      const transport = days * config.transportFee;
+      
+      displayTotalPayroll += payroll;
+      displayTotalTransport += transport;
+      
+      return { name: staffName, sales, days, payroll, transport };
+    })
+    .sort((a, b) => b.sales - a.sales);
+
+  const displayGrossProfit = displayTotalSales - displayTotalPayroll - displayTotalTransport;
+  const displayOperatingProfit = displayGrossProfit - FIXED_COSTS.rent - FIXED_COSTS.machine;
+  const displayProfitMargin = displayTotalSales > 0 ? (displayOperatingProfit / displayTotalSales) * 100 : 0;
+
+  const urlBase = `?year=${currentYear}&month=${currentMonth}`;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
@@ -209,17 +266,35 @@ export default async function DashboardPage({
 
         {/* 経営分析・収支レポート */}
         <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-8">
-          <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-[var(--salon-purple)]" />
-            経営分析・収支レポート
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-[var(--salon-purple)]" />
+              経営分析・収支レポート
+            </h3>
+            
+            {/* タブ切り替え */}
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <Link 
+                href={`${urlBase}&tab=actual`}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'actual' ? 'bg-white text-[var(--salon-purple)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                確定分のみ
+              </Link>
+              <Link 
+                href={`${urlBase}&tab=projected`}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'projected' ? 'bg-white text-[var(--salon-purple)] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                見込み込み (未来の予約含む)
+              </Link>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* スタッフ給与・交通費詳細 */}
             <div className="space-y-4">
               <h4 className="text-sm font-bold text-gray-400 border-b pb-2">スタッフ別 報酬内訳</h4>
               <div className="space-y-3">
-                {staffDetails.map(staff => (
+                {displayStaffDetails.map(staff => (
                   <div key={staff.name} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-bold text-gray-700 text-lg">{staff.name}</span>
@@ -237,7 +312,7 @@ export default async function DashboardPage({
                     </div>
                   </div>
                 ))}
-                {staffDetails.length === 0 && (
+                {displayStaffDetails.length === 0 && (
                   <p className="text-sm text-gray-400 font-bold text-center py-8 bg-gray-50 rounded-xl border border-dashed">
                     この月の稼働データはありません
                   </p>
@@ -251,21 +326,21 @@ export default async function DashboardPage({
               <div className="bg-slate-900 text-white rounded-xl p-5 sm:p-6 space-y-4 shadow-lg shadow-slate-900/10">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-300 font-bold">総売上</span>
-                  <span className="font-bold text-lg">¥{totalSales.toLocaleString()}</span>
+                  <span className="font-bold text-lg">¥{displayTotalSales.toLocaleString()}</span>
                 </div>
                 
                 <div className="pt-2 border-t border-slate-700 space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-red-300">給与合計</span>
-                    <span>- ¥{totalPayroll.toLocaleString()}</span>
+                    <span>- ¥{displayTotalPayroll.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-red-300">交通費合計</span>
-                    <span>- ¥{totalTransport.toLocaleString()}</span>
+                    <span>- ¥{displayTotalTransport.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center font-bold text-green-400 pt-3 border-t border-slate-700/50 mt-2">
                     <span>店粗利</span>
-                    <span className="text-lg">¥{grossProfit.toLocaleString()}</span>
+                    <span className="text-lg">¥{displayGrossProfit.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -284,14 +359,14 @@ export default async function DashboardPage({
                   <div className="flex justify-between items-end">
                     <div>
                       <div className="text-xs text-gray-400 mb-1 font-bold">最終営業利益</div>
-                      <div className={`text-3xl font-black tracking-tighter ${operatingProfit < 0 ? 'text-red-400' : 'text-white'}`}>
-                        ¥{operatingProfit.toLocaleString()}
+                      <div className={`text-3xl font-black tracking-tighter ${displayOperatingProfit < 0 ? 'text-red-400' : 'text-white'}`}>
+                        ¥{displayOperatingProfit.toLocaleString()}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-xs text-gray-400 mb-1 font-bold">利益率</div>
-                      <div className={`text-xl font-bold ${profitMargin < 0 ? 'text-red-400' : 'text-white'}`}>
-                        {profitMargin.toFixed(1)}%
+                      <div className={`text-xl font-bold ${displayProfitMargin < 0 ? 'text-red-400' : 'text-white'}`}>
+                        {displayProfitMargin.toFixed(1)}%
                       </div>
                     </div>
                   </div>
