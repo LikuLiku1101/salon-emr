@@ -44,12 +44,13 @@ function calculateEstimatedPrice(reservedContent: string | null, gender: string 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const supabase = await createClient();
+  const resolvedParams = await searchParams;
   
-  const currentYear = searchParams.year ? parseInt(searchParams.year) : new Date().getFullYear();
-  const currentMonth = searchParams.month ? parseInt(searchParams.month) : new Date().getMonth() + 1;
+  const currentYear = resolvedParams.year ? parseInt(resolvedParams.year as string) : new Date().getFullYear();
+  const currentMonth = resolvedParams.month ? parseInt(resolvedParams.month as string) : new Date().getMonth() + 1;
   
   // yyyy-mm-dd 形式で初日と末日を計算（タイムゾーンの影響を避けるため手動でパディング）
   const mm = String(currentMonth).padStart(2, '0');
