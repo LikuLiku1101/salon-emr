@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function POST() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // 1. Google Sheets APIの認証設定
     const auth = new google.auth.GoogleAuth({
