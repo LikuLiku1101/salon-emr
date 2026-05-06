@@ -45,35 +45,21 @@ export default async function CustomerDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  // 1. 顧客情報を取得
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (!customer) {
-    return <div className="p-8">お客様情報が見つかりませんでした。</div>;
-  }
-
-  // 2. 契約（セット）情報を取得
-  const { data: contracts } = await supabase
-    .from("contracts")
-    .select("*")
-    .eq("customer_id", id)
-    .order("created_at", { ascending: false });
-
-  // 3. 全施術記録を取得
-  const { data: treatments } = await supabase
-    .from("treatments")
-    .select(`
+  // 1. 顧客情報、契約情報、全施術記録を並列で取得して高速化
+  const [
+    { data: customer },
+    { data: contracts },
+    { data: treatments }
+  ] = await Promise.all([
+    supabase.from("customers").select("*").eq("id", id).single(),
+    supabase.from("contracts").select("*").eq("customer_id", id).order("created_at", { ascending: false }),
+    supabase.from("treatments").select(`
       id, visit_date, visit_time, visit_count, notes, contract_id,
       payment_status, payment_method, payment_amount, reserved_content, status,
       staff:staff_id ( name ),
       treatment_details ( body_part )
-    `)
-    .eq("customer_id", id)
-    .order("visit_date", { ascending: false });
+    `).eq("customer_id", id).order("visit_date", { ascending: false })
+  ]);
 
   // 4. 未来の予約と過去の履歴を分ける (JSTを考慮した判定)
   // JSTでの現在の日付と時間を取得 (UTCに9時間を足す)
@@ -132,6 +118,10 @@ export default async function CustomerDetailPage({
       isCompleted: usageCount >= (contract.installments || 1)
     };
   }) || [];
+
+  if (!customer) {
+    return <div className="p-8">お客様情報が見つかりませんでした。</div>;
+  }
 
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8 bg-white min-h-screen pb-20">
