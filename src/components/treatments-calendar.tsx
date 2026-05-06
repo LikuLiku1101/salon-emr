@@ -213,17 +213,6 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
             const [name, content] = title.split('\n');
             const lastName = name.split(/[ 　]/)[0];
 
-            // 時間のフォーマット (例: 午前 10:30)
-            const isAllDay = event.allDay;
-            let timeStr = "";
-            if (!isAllDay) {
-              const h = event.start.getHours();
-              const m = event.start.getMinutes().toString().padStart(2, '0');
-              const ampm = h < 12 ? '午前' : '午後';
-              const h12 = h % 12 === 0 ? 12 : h % 12;
-              timeStr = `${ampm} ${h12}:${m}`;
-            }
-
             return (
               <div 
                 key={event.id}
@@ -236,9 +225,6 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
               >
                 <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${dotColor}`} />
                 <span className="text-[10.5px] font-bold text-gray-700 truncate flex-1 leading-tight">{lastName}</span>
-                {!isAllDay && (
-                  <span className="text-[9px] text-gray-400 font-bold shrink-0 leading-none">{timeStr}</span>
-                )}
               </div>
             );
           })}
