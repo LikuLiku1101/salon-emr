@@ -323,17 +323,10 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         .rbc-month-view .rbc-show-more { display: none !important; }
         .rbc-month-view .rbc-row-content { pointer-events: none; z-index: 1; }
         
-        .rbc-month-row { 
-          flex: 1 0 auto !important; 
-          min-height: 110px; 
-          overflow: visible !important;
-        }
         .rbc-month-view { 
           border-color: var(--color-zinc-100); 
           border-radius: 8px; 
           border: none !important; 
-          overflow-y: auto !important;
-          height: 100% !important;
         }
         
         .rbc-month-row { border-top: 1px solid #f1f1f1 !important; }
@@ -347,7 +340,18 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         
         .rbc-off-range-bg { background-color: #fafafa !important; }
         .rbc-today { background-color: rgba(149, 21, 179, 0.03) !important; }
-        .rbc-date-cell { padding: 0 !important; pointer-events: auto; }
+        
+        /* セル内部をスクロール可能にする */
+        .rbc-row-content { height: 100%; }
+        .rbc-row { height: 100%; }
+        .rbc-date-cell { 
+          padding: 0 !important; 
+          pointer-events: auto; 
+          height: 100%;
+          overflow-y: auto;
+          scrollbar-width: none; /* Firefox */
+        }
+        .rbc-date-cell::-webkit-scrollbar { display: none; } /* Chrome, Safari */
         
         .rbc-toolbar { display: none; } /* デフォルトのツールバーを隠す */
         
