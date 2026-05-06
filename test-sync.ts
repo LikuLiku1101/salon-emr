@@ -41,19 +41,6 @@ async function run() {
     });
     
     console.log('K Column Values:', existingIdsRes.data.values);
-    
-    // Test append
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${sheetTitle}!A:K`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [['Test Date', 'Test Name', 'Test Staff', 'Test Menu', '', 1000, 'Cash', '', '', 1, 'test-id']],
-      },
-    });
-    console.log('Successfully appended test row!');
-    
   } catch (error) {
     console.error('Error in sync script:', error);
   }

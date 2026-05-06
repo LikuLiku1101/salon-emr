@@ -47,6 +47,7 @@ export async function POST() {
         staff ( name )
       `)
       .gt('payment_amount', 0)
+      .gte('visit_date', '2026-05-01')
       .order('visit_date', { ascending: true });
 
     if (treatmentsError) throw treatmentsError;
