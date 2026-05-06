@@ -11,13 +11,22 @@ export function SyncButton() {
 
   const handleSync = async () => {
     setIsSyncing(true);
-    // TODO: ここで /api/sync-spreadsheet などを叩く。現在はシミュレーション。
-    await new Promise(r => setTimeout(r, 1500)); 
-    setIsSyncing(false);
-    setSuccess(true);
-    toast.success('スプレッドシートに最新データを同期しました');
-    
-    setTimeout(() => setSuccess(false), 3000);
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '同期エラーが発生しました');
+      }
+
+      setSuccess(true);
+      toast.success(`${data.count}件のデータをスプレッドシートに同期しました！`);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error: any) {
+      toast.error(error.message || '同期に失敗しました。時間をおいて再試行してください。');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
