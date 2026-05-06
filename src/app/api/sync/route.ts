@@ -66,23 +66,26 @@ export async function POST() {
       const customerName = t.customers?.name || '';
       // @ts-ignore
       const courseName = t.contracts?.course_name || t.reserved_content || '';
+      // @ts-ignore
+      const installments = t.contracts?.installments || 1;
       
-      // 曜日を計算
+      // 日付と曜日をフォーマット（例: 4月24日 金）
       const dateObj = new Date(t.visit_date);
       const days = ['日', '月', '火', '水', '木', '金', '土'];
       const dayOfWeek = days[dateObj.getDay()];
+      const formattedDate = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 ${dayOfWeek}`;
       
       return [
-        t.visit_date,          // A: 日付
-        dayOfWeek,             // B: 曜日
-        customerName,          // C: 氏名
-        courseName,            // D: メニュー
-        t.payment_status || '',// E: 支払種別 (都度など)
-        t.payment_method || '',// F: 支払方法 (現金/カード)
-        t.visit_count || 1,    // G: 来店回数
-        t.payment_amount || 0, // H: 売上金額
-        staffName,             // I: 担当者
-        t.payment_amount || 0, // J: 売上金額（スタッフ売上計算用）
+        formattedDate,         // A: 日付
+        customerName,          // B: 氏名
+        courseName,            // C: 内容
+        t.payment_status || '',// D: 支払い形式 (都度など)
+        t.payment_method || '',// E: 支払い方法 (現金/カード)
+        t.visit_count || 1,    // F: 〇回目
+        t.payment_amount || 0, // G: 支払い額
+        staffName,             // H: 施術者
+        t.payment_amount || 0, // I: 支払い1回（スタッフ売上計算用）
+        installments,          // J: 分割回数
         t.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
     });
