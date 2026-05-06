@@ -6,10 +6,35 @@ export async function POST() {
   try {
     const supabase = createClient();
     
-    // 1. Supabaseから必要なデータを全て取得
+    // 1. Google Sheets APIの認証設定
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const sheets = google.sheets({ version: 'v4', auth });
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+
+    // 2. シートの情報を取得（1つ目のシートの名前を取得）
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetTitle = meta.data.sheets?.[0].properties?.title || 'シート1';
+
+    // 3. すでに同期済みのシステムID（K列）を取得して重複を防ぐ
+    const existingIdsRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetTitle}!K:K`,
+    });
+    // K列にあるIDを配列にする（空の場合は空配列）
+    const existingIds = existingIdsRes.data.values?.flat().filter(id => id) || [];
+
+    // 4. Supabaseから必要なデータを全て取得
     const { data: payments, error: paymentsError } = await supabase
       .from('payments')
       .select(`
+        id,
         customer_id,
         payment_date,
         amount,
@@ -31,11 +56,15 @@ export async function POST() {
 
     if (treatmentsError) throw treatmentsError;
 
-    // 2. スプレッドシート用にデータを整形
-    // A列: 日付, B列: 氏名, C列: 担当者, D列: メニュー, E列: -, F列: 売上金額, G列: 支払方法, H列: -, I列: -, J列: 分割回数
-    // ※実際のシートの列順に合わせてここで調整可能です。
-    const rows = payments.map(p => {
-      // 支払い日と同じ日の来店記録を探して担当者を特定
+    // 5. まだ同期されていない新しい支払いデータだけを抽出
+    const newPayments = payments.filter(p => !existingIds.includes(p.id));
+
+    if (newPayments.length === 0) {
+      return NextResponse.json({ success: true, count: 0, message: '新しいデータはありませんでした。' });
+    }
+
+    // 6. スプレッドシート用にデータを整形
+    const rows = newPayments.map(p => {
       const treatment = treatments?.find(
         t => t.customer_id === p.customer_id && t.visit_date === p.payment_date
       );
@@ -58,43 +87,21 @@ export async function POST() {
         p.payment_method || '',// G: 支払方法
         '',                    // H: (空欄)
         '',                    // I: (空欄)
-        installments           // J: 分割回数
+        installments,          // J: 分割回数
+        p.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
     });
 
-    // 3. Google Sheets APIの認証設定
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-
-    const sheets = google.sheets({ version: 'v4', auth });
-    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-
-    // 4. シートの情報を取得（1つ目のシートの名前を取得）
-    const meta = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheetTitle = meta.data.sheets?.[0].properties?.title || 'シート1';
-
-    // 5. 既存のデータ（2行目以降）をクリア
-    await sheets.spreadsheets.values.clear({
+    // 7. 新しいデータを既存データの下に追記（append）する
+    await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetTitle}!A2:Z`,
+      range: `${sheetTitle}!A:K`, // A列〜K列の末尾に追加
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: rows,
+      },
     });
-
-    // 6. 新しいデータを書き込み
-    if (rows.length > 0) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${sheetTitle}!A2`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: rows,
-        },
-      });
-    }
 
     return NextResponse.json({ success: true, count: rows.length });
 
