@@ -82,12 +82,12 @@ export async function POST() {
         formattedDate,         // A: 日付
         customerName,          // B: 氏名
         courseName,            // C: 内容
-        t.payment_status || '',// D: 支払い形式 (都度など)
+        (t.payment_status || '').includes('一括') ? '一括' : '都度', // D: 支払い形式 (都度など)
         t.payment_method || '',// E: 支払い方法 (現金/カード)
         t.visit_count || 1,    // F: 〇回目
         totalAmount,           // G: 支払い額 (コース総額 or 都度支払い額)
         staffName,             // H: 施術者
-        totalAmount,           // I: 支払い1回（スタッフ売上計算用）
+        totalAmount > 0 && installments > 1 ? Math.floor(totalAmount / installments) : (t.payment_amount || 0), // I: 支払い1回（スタッフ売上計算用）
         installments,          // J: 分割回数 (コース回数)
         t.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
