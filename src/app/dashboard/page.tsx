@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
-import { ArrowLeft, TrendingUp, CalendarCheck, FileSpreadsheet, DollarSign } from "lucide-react";
+import { ArrowLeft, TrendingUp, CalendarCheck, FileSpreadsheet, DollarSign, Users } from "lucide-react";
 import Link from "next/link";
 import { SyncButton } from "./sync-button";
+import { MonthSelector } from "./month-selector";
 
 const COURSE_PRICES: Record<string, number> = {
   "全身脱毛": 30000,
@@ -25,7 +26,6 @@ function calculateEstimatedPrice(reservedContent: string | null, gender: string 
   if (COURSE_PRICES[reservedContent]) {
     price = COURSE_PRICES[reservedContent];
   } else {
-    // ポイント施術のカンマ（、）区切りの場合
     const parts = reservedContent.split('、');
     for (const part of parts) {
       if (PART_PRICES[part]) {
@@ -34,7 +34,6 @@ function calculateEstimatedPrice(reservedContent: string | null, gender: string 
     }
   }
 
-  // 女性は10%オフ
   if (gender === '女性') {
     price = Math.floor(price * 0.9);
   }
@@ -42,29 +41,63 @@ function calculateEstimatedPrice(reservedContent: string | null, gender: string 
   return price;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { year?: string; month?: string };
+}) {
   const supabase = await createClient();
   
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  const currentYear = searchParams.year ? parseInt(searchParams.year) : new Date().getFullYear();
+  const currentMonth = searchParams.month ? parseInt(searchParams.month) : new Date().getMonth() + 1;
+  
+  // yyyy-mm-dd 形式で初日と末日を計算（タイムゾーンの影響を避けるため手動でパディング）
+  const mm = String(currentMonth).padStart(2, '0');
+  const firstDay = `${currentYear}-${mm}-01`;
+  const lastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
 
   // 1. 今月の確定売上 (payments)
   const { data: payments } = await supabase
     .from("payments")
-    .select("amount")
+    .select("amount, payment_date, customer_id")
     .gte("payment_date", firstDay)
     .lte("payment_date", lastDay);
+
+  // 売上に紐づけるための treatments 取得
+  const { data: treatments } = await supabase
+    .from("treatments")
+    .select("visit_date, customer_id, staff(name)")
+    .gte("visit_date", firstDay)
+    .lte("visit_date", lastDay);
+
+  const staffSales: Record<string, number> = {};
+  let totalSales = 0;
+
+  payments?.forEach(p => {
+    const amount = p.amount || 0;
+    totalSales += amount;
     
-  const totalSales = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+    // 同じ日・同じ顧客の施術を探す
+    const matchedTreatment = treatments?.find(t => t.visit_date === p.payment_date && t.customer_id === p.customer_id);
+    const staffName = Array.isArray(matchedTreatment?.staff) 
+      ? matchedTreatment?.staff[0]?.name 
+      : (matchedTreatment?.staff as any)?.name || "担当不明 (物販等)";
+    
+    if (!staffSales[staffName]) {
+      staffSales[staffName] = 0;
+    }
+    staffSales[staffName] += amount;
+  });
 
   // 2. 今月の見込み売上 (未来の予約)
-  // 当月内の予約（今日以降）を取得
-  const today = now.toISOString().split('T')[0];
+  // 当月内の予約（初日以降を全て見込みの元データとし、本来は決済済みを引くべきだが、シンプルに「未決済の未来の予約」なら今日以降にする）
+  const today = new Date().toISOString().split('T')[0];
+  const searchStartDay = today > firstDay ? today : firstDay;
+
   const { data: futureReservations } = await supabase
     .from("treatments")
     .select("id, reserved_content, customers(gender)")
-    .gte("visit_date", today)
+    .gte("visit_date", searchStartDay)
     .lte("visit_date", lastDay);
     
   const reservationCount = futureReservations?.length || 0;
@@ -72,7 +105,6 @@ export default async function DashboardPage() {
   let estimatedSales = 0;
   if (futureReservations) {
     for (const res of futureReservations) {
-      // SupabaseのJOIN結果はオブジェクトの配列または単一オブジェクトになる
       const gender = Array.isArray(res.customers) ? res.customers[0]?.gender : (res.customers as any)?.gender;
       estimatedSales += calculateEstimatedPrice(res.reserved_content, gender);
     }
@@ -88,8 +120,11 @@ export default async function DashboardPage() {
               <ArrowLeft className="mr-2 h-4 w-4" />
               メインメニューへ戻る
             </Link>
-            <h1 className="text-3xl font-black tracking-tight text-gray-900">経営者ダッシュボード</h1>
-            <p className="text-sm font-bold text-gray-400 mt-1">{now.getFullYear()}年{now.getMonth() + 1}月の実績と見込み</p>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-black tracking-tight text-gray-900">経営者ダッシュボード</h1>
+              <MonthSelector currentYear={currentYear} currentMonth={currentMonth} />
+            </div>
+            <p className="text-sm font-bold text-gray-400 mt-1">{currentYear}年{currentMonth}月の実績と見込み</p>
           </div>
           <SyncButton />
         </header>
@@ -127,7 +162,7 @@ export default async function DashboardPage() {
                </div>
                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-[var(--salon-purple)] rounded-full text-xs font-bold">
                  <CalendarCheck className="w-3.5 h-3.5" />
-                 今月の残り予約: {reservationCount}件
+                 残りの予約: {reservationCount}件
                </div>
                <div className="pt-2">
                  <p className="text-[10px] text-gray-400 font-bold bg-gray-50 inline-block px-2 py-1 rounded">※料金表ベースで算出（女性10%オフ適用）</p>
@@ -136,24 +171,52 @@ export default async function DashboardPage() {
            </div>
         </div>
 
-        {/* スプレッドシート連携エリア */}
-        <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 border border-green-100">
-              <FileSpreadsheet className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-gray-900">スプレッドシート自動連携</h3>
-              <p className="text-sm font-bold text-gray-500">Google Sheetsへ最新の売上・顧客データを反映させます</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* スタッフ別売上 */}
+          <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-6">
+            <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+              <Users className="w-6 h-6 text-[var(--salon-purple)]" />
+              スタッフ別 売上実績
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(staffSales).sort((a, b) => b[1] - a[1]).map(([staffName, amount]) => (
+                <div key={staffName} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="font-bold text-gray-700">{staffName}</div>
+                  <div className="font-black text-xl text-gray-900">¥{amount.toLocaleString()}</div>
+                </div>
+              ))}
+              {Object.keys(staffSales).length === 0 && (
+                <p className="text-sm text-gray-400 font-bold text-center py-8 bg-gray-50 rounded-xl border border-dashed">
+                  この月の売上データはありません
+                </p>
+              )}
             </div>
           </div>
-          <div className="p-5 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-sm text-gray-600 font-bold leading-relaxed">
-              画面右上の「シートに反映」ボタンを押すことで、連携処理が走る設計になっています。<br/>
-              本格的に書き込むためには、対象の<span className="text-gray-900 bg-white px-1 py-0.5 rounded shadow-sm border mx-1">スプレッドシートのURL</span>や、<span className="text-gray-900 bg-white px-1 py-0.5 rounded shadow-sm border mx-1">書き込み先の形式（列の並び）</span>を教えていただく必要があります。
-            </p>
+
+          {/* スプレッドシート連携エリア */}
+          <div className="bg-white border-2 border-gray-100 rounded-3xl p-8 shadow-sm space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 border border-green-100 shrink-0">
+                <FileSpreadsheet className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-gray-900">スプレッドシート連携</h3>
+                <p className="text-sm font-bold text-gray-500">Google Sheetsへ売上・顧客データを反映</p>
+              </div>
+            </div>
+            <div className="p-5 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm text-gray-600 font-bold leading-relaxed mb-4">
+                既存のシート（添付フォーマット）へデータを直接追記するプログラムを組み込みます。
+              </p>
+              <ol className="text-xs text-gray-500 font-bold space-y-2 list-decimal list-inside">
+                <li>Google Cloud で「サービスアカウント」を作成しJSONキーを発行</li>
+                <li>そのJSONキーをシステム（Vercel）に登録</li>
+                <li>対象のスプレッドシートへ、そのサービスアカウントのメールアドレスを「編集者」として共有</li>
+              </ol>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );
