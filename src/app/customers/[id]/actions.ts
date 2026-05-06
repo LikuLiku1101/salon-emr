@@ -66,6 +66,30 @@ export async function updateCustomerLineUserId(customerId: string, lineUserId: s
   return { success: true };
 }
 
+export async function updateCustomer(customerId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get("name") as string;
+  const name_kana = formData.get("name_kana") as string;
+  const gender = formData.get("gender") as string;
+  const phone = formData.get("phone") as string;
+  const email = formData.get("email") as string;
+
+  const { error } = await supabase
+    .from("customers")
+    .update({ name, name_kana, gender, phone, email })
+    .eq("id", customerId);
+
+  if (error) {
+    console.error("Update Customer Error:", error);
+    return { success: false, error: "お客様情報の更新に失敗しました" };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers");
+  return { success: true };
+}
+
 export async function sendManualLineMessage(customerId: string, text: string) {
   const supabase = await createClient();
 

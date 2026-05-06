@@ -35,7 +35,7 @@ import VisitHistoryList from "./visit-history-list";
 import DeleteTreatmentButton from "./delete-button";
 import LineUserIdForm from "./line-user-id-form";
 import ManualMessageForm from "./manual-message-form";
-
+import EditCustomerDialog from "./edit-customer-dialog";
 
 export default async function CustomerDetailPage({
   params,
@@ -133,6 +133,7 @@ export default async function CustomerDetailPage({
             </Link>
             <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-3xl font-bold tracking-tight text-gray-900">{customer.name} 様</h1>
+                <EditCustomerDialog customer={customer} />
                 <div className="flex gap-2">
                     {customer.gender === '女性' && (
                         <Badge variant="outline" className="text-[var(--salon-magenta)] border-[var(--salon-magenta)] bg-[var(--salon-magenta)]/5 font-bold">女性</Badge>
