@@ -160,45 +160,103 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     return {};
   };
 
-  // カスタム日付ヘッダー（日付の数字部分）
+  // カスタム日付ヘッダー（日付の数字部分 + イベント表示をすべてここで担う！）
   const CustomDateHeader = ({ label, date }: { label: string, date: Date }) => {
     const holiday = JapaneseHolidays.isHoliday(date);
     const day = date.getDay();
     const isRedDay = !!holiday || day === 0;
     const isBlueDay = day === 6;
 
+    // この日のイベントを取得
+    const dayEvents = events.filter(e => 
+      e.start.getDate() === date.getDate() && 
+      e.start.getMonth() === date.getMonth() && 
+      e.start.getFullYear() === date.getFullYear()
+    );
+
+    // イベントを時間順にソート
+    dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+
     return (
-      <div className="flex flex-col items-end pr-1 pt-1">
-        <button 
-          type="button"
-          className={cn(
-            "text-[11px] font-bold hover:underline",
-            isRedDay ? "text-red-500" : isBlueDay ? "text-blue-500" : "text-gray-500"
+      <div className="flex flex-col h-full pb-1">
+        <div className="flex flex-col items-end pr-1 pt-1 mb-1">
+          <button 
+            type="button"
+            className={cn(
+              "text-[11px] font-bold hover:underline",
+              isRedDay ? "text-red-500" : isBlueDay ? "text-blue-500" : "text-gray-500"
+            )}
+          >
+            {label}
+          </button>
+          {holiday && (
+            <span className="text-[8px] text-red-400 font-bold leading-none mt-0.5 scale-90 origin-right truncate max-w-full">
+              {holiday}
+            </span>
           )}
-        >
-          {label}
-        </button>
-        {holiday && (
-          <span className="text-[8px] text-red-400 font-bold leading-none mt-0.5 scale-90 origin-right truncate max-w-full">
-            {holiday}
-          </span>
-        )}
+        </div>
+        
+        {/* TimeTreeスタイルのイベントリスト */}
+        <div className="flex flex-col gap-[2px] px-0.5 w-full">
+          {dayEvents.map(event => {
+            const staffId = event.resource?.staff?.id || "default";
+            const isCancelled = event.resource?.status === 'キャンセル';
+            
+            // ドットのカラー決定
+            let dotColor = "bg-purple-500";
+            if (isCancelled) dotColor = "bg-red-500";
+            else if (staffId === "280b61fe-3b23-44ab-91d0-08916f07c88f") dotColor = "bg-sky-500";
+            else if (staffId === "377e02bb-7aea-4eb7-9328-ee9d57ec85e1") dotColor = "bg-green-500";
+
+            // 名前の取得
+            const title = event.title || "";
+            const [name, content] = title.split('\n');
+            const lastName = name.split(/[ 　]/)[0];
+
+            // 時間のフォーマット (例: 午前 10:30)
+            const isAllDay = event.allDay;
+            let timeStr = "";
+            if (!isAllDay) {
+              const h = event.start.getHours();
+              const m = event.start.getMinutes().toString().padStart(2, '0');
+              const ampm = h < 12 ? '午前' : '午後';
+              const h12 = h % 12 === 0 ? 12 : h % 12;
+              timeStr = `${ampm} ${h12}:${m}`;
+            }
+
+            return (
+              <div 
+                key={event.id}
+                onClick={(e) => { e.stopPropagation(); handleSelectEvent(event); }}
+                className={cn(
+                  "flex items-center gap-1 rounded px-1 py-[3px] cursor-pointer hover:bg-black/5 transition-colors w-full text-left",
+                  isCancelled ? "opacity-50" : "",
+                  event.resource?.isPast ? "opacity-70 bg-gray-50/50" : "bg-white shadow-sm border border-gray-100"
+                )}
+              >
+                <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${dotColor}`} />
+                <span className="text-[10.5px] font-bold text-gray-700 truncate flex-1 leading-tight">{lastName}</span>
+                {!isAllDay && (
+                  <span className="text-[9px] text-gray-400 font-bold shrink-0 leading-none">{timeStr}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
-  // カスタムイベントコンポーネント
+  // 週・日ビュー用のカスタムイベントコンポーネント
   const CustomEvent = ({ event }: { event: any }) => {
     const title = event.title || "";
     const [name, content] = title.split('\n');
-    
-    // 名字の取得（スペースで区切られている場合）
     const lastName = name.split(/[ 　]/)[0];
 
     return (
-      <div className="rbc-event-custom-content">
-        <div className="event-name-container">{lastName}</div>
-        {content && <div className="event-details-container">{content}</div>}
+      <div className="flex flex-col h-full overflow-hidden leading-tight p-0.5">
+        <div className="font-bold text-[11px] truncate">{lastName}</div>
+        {content && <div className="text-[9px] opacity-80 truncate">{content}</div>}
       </div>
     );
   };
@@ -257,10 +315,27 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   };
 
   return (
-    <div className="h-[750px] w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative">
+    <div className="h-[750px] w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative overflow-hidden">
       {isLoading && <LoadingSpinner />}
       <style jsx global>{`
-        .rbc-month-view { border-color: var(--color-zinc-100); border-radius: 8px; overflow: hidden; border: none !important; }
+        /* TimeTree風カスタム設定 */
+        .rbc-month-view .rbc-event { display: none !important; }
+        .rbc-month-view .rbc-show-more { display: none !important; }
+        .rbc-month-view .rbc-row-content { pointer-events: none; z-index: 1; }
+        
+        .rbc-month-row { 
+          flex: 1 0 auto !important; 
+          min-height: 110px; 
+          overflow: visible !important;
+        }
+        .rbc-month-view { 
+          border-color: var(--color-zinc-100); 
+          border-radius: 8px; 
+          border: none !important; 
+          overflow-y: auto !important;
+          height: 100% !important;
+        }
+        
         .rbc-month-row { border-top: 1px solid #f1f1f1 !important; }
         .rbc-day-bg { border-left: 1px solid #f1f1f1 !important; }
         .rbc-header { padding: 4px; font-weight: 800; font-size: 0.7rem; border-bottom: 1px solid #f1f1f1 !important; border-left: 1px solid #f1f1f1 !important; }
@@ -272,68 +347,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         
         .rbc-off-range-bg { background-color: #fafafa !important; }
         .rbc-today { background-color: rgba(149, 21, 179, 0.03) !important; }
-        .rbc-event { min-height: 24px; margin-bottom: 2px; border-radius: 6px !important; }
-        .rbc-event-label { display: none; }
-        .rbc-event-content { padding: 0 !important; height: 100%; }
-        .rbc-date-cell { padding: 0 !important; }
-        
-        /* モバイル用の横書き・コンパクト設定 */
-        @media (max-width: 639px) {
-          .rbc-event { 
-            min-height: 18px;
-            margin: 0.5px 0 !important;
-            padding: 0 !important;
-          }
-          .rbc-event-custom-content {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            padding: 0px 4px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            width: 100%;
-          }
-          .event-name-container {
-            font-size: 0.65rem;
-            font-weight: 900;
-            flex-shrink: 0;
-          }
-          .event-details-container {
-            font-size: 0.55rem;
-            opacity: 0.8;
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-        }
-
-        /* デスクトップ用 */
-        @media (min-width: 640px) {
-          .rbc-event {
-            min-height: 24px;
-          }
-          .rbc-event-custom-content {
-            display: flex;
-            flex-direction: column;
-            padding: 2px 4px;
-            overflow: hidden;
-          }
-          .event-name-container {
-            font-size: 0.7rem;
-            font-weight: 800;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          .event-details-container {
-            font-size: 0.6rem;
-            opacity: 0.7;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-        }
+        .rbc-date-cell { padding: 0 !important; pointer-events: auto; }
         
         .rbc-toolbar { display: none; } /* デフォルトのツールバーを隠す */
         
