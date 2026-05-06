@@ -30,65 +30,55 @@ export async function POST() {
     // K列にあるIDを配列にする（空の場合は空配列）
     const existingIds = existingIdsRes.data.values?.flat().filter(id => id) || [];
 
-    // 4. Supabaseから必要なデータを全て取得
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select(`
-        id,
-        customer_id,
-        payment_date,
-        amount,
-        payment_method,
-        customers ( name ),
-        contracts ( course_name, installments )
-      `)
-      .order('payment_date', { ascending: true });
-
-    if (paymentsError) throw paymentsError;
-
+    // 4. Supabaseから必要なデータを全て取得 (カルテから支払金額があるものを抽出)
     const { data: treatments, error: treatmentsError } = await supabase
       .from('treatments')
       .select(`
-        visit_date, 
-        customer_id, 
+        id,
+        customer_id,
+        visit_date,
+        payment_amount,
+        payment_method,
+        reserved_content,
+        customers ( name ),
+        contracts ( course_name, installments ),
         staff ( name )
-      `);
+      `)
+      .gt('payment_amount', 0)
+      .order('visit_date', { ascending: true });
 
     if (treatmentsError) throw treatmentsError;
 
     // 5. まだ同期されていない新しい支払いデータだけを抽出
-    const newPayments = payments.filter(p => !existingIds.includes(p.id));
+    const newPayments = treatments.filter(t => !existingIds.includes(t.id));
 
     if (newPayments.length === 0) {
       return NextResponse.json({ success: true, count: 0, message: '新しいデータはありませんでした。' });
     }
 
     // 6. スプレッドシート用にデータを整形
-    const rows = newPayments.map(p => {
-      const treatment = treatments?.find(
-        t => t.customer_id === p.customer_id && t.visit_date === p.payment_date
-      );
+    const rows = newPayments.map(t => {
       // @ts-ignore
-      const staffName = treatment?.staff?.name || '';
+      const staffName = Array.isArray(t.staff) ? t.staff[0]?.name : (t.staff as any)?.name || '';
       // @ts-ignore
-      const customerName = p.customers?.name || '';
+      const customerName = t.customers?.name || '';
       // @ts-ignore
-      const courseName = p.contracts?.course_name || '';
+      const courseName = t.contracts?.course_name || t.reserved_content || '';
       // @ts-ignore
-      const installments = p.contracts?.installments || 1;
+      const installments = t.contracts?.installments || 1;
       
       return [
-        p.payment_date,        // A: 日付
+        t.visit_date,          // A: 日付
         customerName,          // B: 氏名
         staffName,             // C: 担当者
         courseName,            // D: メニュー
         '',                    // E: (空欄)
-        p.amount || 0,         // F: 売上金額
-        p.payment_method || '',// G: 支払方法
+        t.payment_amount || 0, // F: 売上金額
+        t.payment_method || '',// G: 支払方法
         '',                    // H: (空欄)
         '',                    // I: (空欄)
         installments,          // J: 分割回数
-        p.id                   // K: システム用ID（重複防止のため、画面外に記録）
+        t.id                   // K: システム用ID（重複防止のため、画面外に記録）
       ];
     });
 

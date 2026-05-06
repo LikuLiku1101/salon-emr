@@ -57,32 +57,24 @@ export default async function DashboardPage({
   const firstDay = `${currentYear}-${mm}-01`;
   const lastDay = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
 
-  // 1. 今月の確定売上 (payments)
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("amount, payment_date, customer_id")
-    .gte("payment_date", firstDay)
-    .lte("payment_date", lastDay);
-
-  // 売上に紐づけるための treatments 取得
-  const { data: treatments } = await supabase
+  // 1. 今月の確定売上 (カルテに記録された支払金額)
+  const { data: completedTreatments } = await supabase
     .from("treatments")
-    .select("visit_date, customer_id, staff(name)")
+    .select("payment_amount, visit_date, staff(name)")
     .gte("visit_date", firstDay)
-    .lte("visit_date", lastDay);
+    .lte("visit_date", lastDay)
+    .gt("payment_amount", 0);
 
   const staffSales: Record<string, number> = {};
   let totalSales = 0;
 
-  payments?.forEach(p => {
-    const amount = p.amount || 0;
+  completedTreatments?.forEach(t => {
+    const amount = t.payment_amount || 0;
     totalSales += amount;
     
-    // 同じ日・同じ顧客の施術を探す
-    const matchedTreatment = treatments?.find(t => t.visit_date === p.payment_date && t.customer_id === p.customer_id);
-    const staffName = Array.isArray(matchedTreatment?.staff) 
-      ? matchedTreatment?.staff[0]?.name 
-      : (matchedTreatment?.staff as any)?.name || "担当不明 (物販等)";
+    const staffName = Array.isArray(t.staff) 
+      ? t.staff[0]?.name 
+      : (t.staff as any)?.name || "担当不明";
     
     if (!staffSales[staffName]) {
       staffSales[staffName] = 0;
