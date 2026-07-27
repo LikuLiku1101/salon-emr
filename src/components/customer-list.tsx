@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, FileText, MessageCircle } from "lucide-react";
+import { Search, FileText, MessageCircle, Filter, Clock, ArrowDownAZ } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ interface Customer {
   treatments: Array<{
     contract_id: string;
     status: string;
+    visit_date?: string;
   }>;
 }
 
@@ -95,6 +96,8 @@ const getKanaRow = (kana: string | null): string => {
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState<"kana" | "recent">("kana");
+  const [filterHasContract, setFilterHasContract] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -104,27 +107,62 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
     setIsLoading(false);
   }, [pathname]);
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.includes(searchQuery) || 
-    (c.name_kana && c.name_kana.includes(searchQuery))
-  );
+  // 顧客ごとに最終来店日と契約状況を計算
+  const processedCustomers = customers.map(c => {
+    // 最終来店日の計算 (今日以前の最も新しい来店日)
+    const today = new Date().toISOString().split("T")[0];
+    const pastVisits = (c.treatments || [])
+      .filter(t => t.visit_date && t.visit_date <= today && t.status !== 'キャンセル')
+      .map(t => t.visit_date as string)
+      .sort((a, b) => b.localeCompare(a));
+    const lastVisitDate = pastVisits.length > 0 ? pastVisits[0] : null;
 
-  // グループ化
-  const groupedCustomers = KANA_ROWS.reduce((acc, row) => {
-    acc[row] = filteredCustomers.filter(c => getKanaRow(c.name_kana) === row);
-    return acc;
-  }, {} as Record<string, Customer[]>);
-
-  // その他グループ
-  const others = filteredCustomers.filter(c => !KANA_ROWS.includes(getKanaRow(c.name_kana)));
-
-  const renderCustomerRow = (c: Customer) => {
-    // 有効な契約を優先し、最新のもの1つを表示
+    // 表示する契約を決定
     const displayContract = c.contracts?.sort((a: any, b: any) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (a.status !== 'active' && b.status === 'active') return 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     })[0];
+
+    // 契約が有効（未消化）かどうか
+    let hasActiveContract = false;
+    if (displayContract) {
+      const usedCount = c.treatments?.filter((t: any) => 
+        t.contract_id === displayContract.id && t.status !== 'キャンセル'
+      ).length || 0;
+      const total = displayContract.installments || 1;
+      hasActiveContract = usedCount < total;
+    }
+
+    return { ...c, lastVisitDate, displayContract, hasActiveContract };
+  });
+
+  // フィルタリング
+  let filteredCustomers = processedCustomers.filter(c => 
+    (c.name.includes(searchQuery) || (c.name_kana && c.name_kana.includes(searchQuery))) &&
+    (!filterHasContract || c.hasActiveContract)
+  );
+
+  // ソート
+  if (sortMode === "recent") {
+    filteredCustomers = filteredCustomers.sort((a, b) => {
+      if (!a.lastVisitDate) return 1;
+      if (!b.lastVisitDate) return -1;
+      return b.lastVisitDate.localeCompare(a.lastVisitDate);
+    });
+  }
+
+  // グループ化 (五十音順モードの場合のみ使用)
+  const groupedCustomers = KANA_ROWS.reduce((acc, row) => {
+    acc[row] = filteredCustomers.filter(c => getKanaRow(c.name_kana) === row).sort((a, b) => a.name_kana.localeCompare(b.name_kana));
+    return acc;
+  }, {} as Record<string, (Customer & { lastVisitDate: string | null; displayContract: any; hasActiveContract: boolean })[]>);
+
+  // その他グループ
+  const others = filteredCustomers.filter(c => !KANA_ROWS.includes(getKanaRow(c.name_kana))).sort((a, b) => a.name_kana.localeCompare(b.name_kana));
+
+  const renderCustomerRow = (c: Customer & { lastVisitDate: string | null; displayContract: any; hasActiveContract: boolean }) => {
+    const displayContract = c.displayContract;
 
     let statusBadge = <span className="text-xs text-muted-foreground italic tracking-tight">契約なし</span>;
 
@@ -203,21 +241,55 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
     <div className="space-y-6 relative">
       {isLoading && <LoadingSpinner />}
       
-      {/* 検索バー */}
-      <div className="relative group">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[var(--salon-purple)] transition-colors" />
-        <Input
-          type="search"
-          placeholder="お名前やフリガナで検索..."
-          className="pl-11 h-14 bg-white border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all text-base sm:text-lg font-bold"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      {/* コントロールパネル */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center">
+        {/* 検索バー */}
+        <div className="relative group flex-1 w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-[var(--salon-purple)] transition-colors" />
+          <Input
+            type="search"
+            placeholder="お名前やフリガナで検索..."
+            className="pl-11 h-12 bg-white border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all text-sm sm:text-base font-bold"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 shrink-0">
+          {/* ソートセレクタ */}
+          <div className="relative">
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as "kana" | "recent")}
+              className="appearance-none h-12 pl-10 pr-8 rounded-xl border border-gray-200 bg-white text-sm font-bold shadow-sm focus:ring-2 focus:ring-[var(--salon-purple)]/20 text-gray-700 w-[140px]"
+            >
+              <option value="kana">あいうえお順</option>
+              <option value="recent">直近来店順</option>
+            </select>
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              {sortMode === "kana" ? <ArrowDownAZ className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+            </div>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+          </div>
+
+          {/* 契約中フィルター */}
+          <Button
+            variant={filterHasContract ? "default" : "outline"}
+            onClick={() => setFilterHasContract(!filterHasContract)}
+            className={`h-12 px-4 gap-2 font-bold rounded-xl shadow-sm border-gray-200 shrink-0 ${
+              filterHasContract ? "bg-[var(--salon-purple)] text-white hover:bg-[var(--salon-purple)]/90" : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">契約中のみ</span>
+            <span className="sm:hidden">契約中</span>
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {searchQuery ? (
-          // 検索結果 (フラットリスト)
+        {searchQuery || sortMode === "recent" ? (
+          // 検索結果 または 直近来店順 (フラットリスト)
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow className="border-gray-100">

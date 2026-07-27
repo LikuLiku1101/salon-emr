@@ -14,7 +14,7 @@ export default async function CustomersPage() {
     .select(`
       id, name, name_kana, line_user_id,
       contracts ( id, course_name, status, installments, created_at ),
-      treatments ( contract_id, status )
+      treatments ( contract_id, status, visit_date )
     `)
     .order("name_kana", { ascending: true });
 
