@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, FileText, MessageCircle, Filter, Clock, ArrowDownAZ } from "lucide-react";
+import { Search, FileText, MessageCircle, Filter, Clock, ArrowDownAZ, CalendarClock } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ const getKanaRow = (kana: string | null): string => {
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortMode, setSortMode] = useState<"kana" | "recent">("kana");
+  const [sortMode, setSortMode] = useState<"kana" | "recent" | "upcoming">("kana");
   const [filterHasContract, setFilterHasContract] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -164,6 +164,17 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
       if (!a.lastVisitDate) return 1;
       if (!b.lastVisitDate) return -1;
       return b.lastVisitDate.localeCompare(a.lastVisitDate);
+    });
+  } else if (sortMode === "upcoming") {
+    filteredCustomers = filteredCustomers.sort((a, b) => {
+      if (!a.nextVisit) return 1;
+      if (!b.nextVisit) return -1;
+      const dateA = a.nextVisit.visit_date || "";
+      const dateB = b.nextVisit.visit_date || "";
+      if (dateA !== dateB) return dateA.localeCompare(dateB);
+      const timeA = a.nextVisit.visit_time || "23:59";
+      const timeB = b.nextVisit.visit_time || "23:59";
+      return timeA.localeCompare(timeB);
     });
   }
 
@@ -299,14 +310,17 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
           <div className="relative">
             <select
               value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as "kana" | "recent")}
+              onChange={(e) => setSortMode(e.target.value as "kana" | "recent" | "upcoming")}
               className="appearance-none h-12 pl-10 pr-8 rounded-xl border border-gray-200 bg-white text-sm font-bold shadow-sm focus:ring-2 focus:ring-[var(--salon-purple)]/20 text-gray-700 w-[140px]"
             >
               <option value="kana">あいうえお順</option>
-              <option value="recent">直近来店順</option>
+              <option value="recent">最終来店順</option>
+              <option value="upcoming">次回予約順</option>
             </select>
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-              {sortMode === "kana" ? <ArrowDownAZ className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+              {sortMode === "kana" ? <ArrowDownAZ className="h-4 w-4" /> : 
+               sortMode === "recent" ? <Clock className="h-4 w-4" /> :
+               <CalendarClock className="h-4 w-4" />}
             </div>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
           </div>
@@ -327,8 +341,8 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {searchQuery || sortMode === "recent" ? (
-          // 検索結果 または 直近来店順 (フラットリスト)
+        {searchQuery || sortMode === "recent" || sortMode === "upcoming" ? (
+          // 検索結果 または 直近来店順/次回予約順 (フラットリスト)
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow className="border-gray-100">
