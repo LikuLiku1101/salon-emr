@@ -27,7 +27,8 @@ interface Customer {
   id: string;
   name: string;
   name_kana: string;
-  line_user_id?: string; // Added line_user_id
+  gender: string | null;
+  line_user_id?: string;
   contracts: Array<{
     id: string;
     course_name: string;
@@ -39,6 +40,7 @@ interface Customer {
     contract_id: string;
     status: string;
     visit_date?: string;
+    visit_time?: string;
   }>;
 }
 
@@ -112,10 +114,23 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
     // 最終来店日の計算 (今日以前の最も新しい来店日)
     const today = new Date().toISOString().split("T")[0];
     const pastVisits = (c.treatments || [])
-      .filter(t => t.visit_date && t.visit_date <= today && t.status !== 'キャンセル')
+      .filter(t => t.visit_date && t.visit_date <= today && t.status !== 'キャンセル' && t.status !== '無断キャンセル')
       .map(t => t.visit_date as string)
       .sort((a, b) => b.localeCompare(a));
     const lastVisitDate = pastVisits.length > 0 ? pastVisits[0] : null;
+
+    // 次回予約の計算 (今日以降の最も古い来店日)
+    const futureVisits = (c.treatments || [])
+      .filter(t => t.visit_date && t.visit_date >= today && t.status !== 'キャンセル' && t.status !== '無断キャンセル')
+      .sort((a, b) => {
+        const dateA = a.visit_date!;
+        const dateB = b.visit_date!;
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        const timeA = a.visit_time || "23:59";
+        const timeB = b.visit_time || "23:59";
+        return timeA.localeCompare(timeB);
+      });
+    const nextVisit = futureVisits.length > 0 ? futureVisits[0] : null;
 
     // 表示する契約を決定
     const displayContract = c.contracts?.sort((a: any, b: any) => {
@@ -134,7 +149,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
       hasActiveContract = usedCount < total;
     }
 
-    return { ...c, lastVisitDate, displayContract, hasActiveContract };
+    return { ...c, lastVisitDate, nextVisit, displayContract, hasActiveContract };
   });
 
   // フィルタリング
@@ -154,14 +169,14 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
 
   // グループ化 (五十音順モードの場合のみ使用)
   const groupedCustomers = KANA_ROWS.reduce((acc, row) => {
-    acc[row] = filteredCustomers.filter(c => getKanaRow(c.name_kana) === row).sort((a, b) => a.name_kana.localeCompare(b.name_kana));
+    acc[row] = filteredCustomers.filter(c => getKanaRow(c.name_kana) === row).sort((a, b) => (a.name_kana || "").localeCompare(b.name_kana || ""));
     return acc;
-  }, {} as Record<string, (Customer & { lastVisitDate: string | null; displayContract: any; hasActiveContract: boolean })[]>);
+  }, {} as Record<string, (Customer & { lastVisitDate: string | null; nextVisit: any; displayContract: any; hasActiveContract: boolean })[]>);
 
   // その他グループ
-  const others = filteredCustomers.filter(c => !KANA_ROWS.includes(getKanaRow(c.name_kana))).sort((a, b) => a.name_kana.localeCompare(b.name_kana));
+  const others = filteredCustomers.filter(c => !KANA_ROWS.includes(getKanaRow(c.name_kana))).sort((a, b) => (a.name_kana || "").localeCompare(b.name_kana || ""));
 
-  const renderCustomerRow = (c: Customer & { lastVisitDate: string | null; displayContract: any; hasActiveContract: boolean }) => {
+  const renderCustomerRow = (c: Customer & { lastVisitDate: string | null; nextVisit: any; displayContract: any; hasActiveContract: boolean }) => {
     const displayContract = c.displayContract;
 
     let statusBadge = <span className="text-xs text-muted-foreground italic tracking-tight">契約なし</span>;
@@ -208,26 +223,50 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
           router.push(`/customers/${c.id}`);
         }}
       >
-        <TableCell className="px-2 py-3">
-          <div className="flex items-center gap-2">
+        <TableCell className="px-2 py-3 w-[30%] min-w-[140px]">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="font-black text-xs sm:text-base text-gray-800 leading-tight">{c.name}</div>
+            {c.gender === '女性' && (
+              <span className="bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded text-[9px] font-bold border border-pink-100 whitespace-nowrap">女性</span>
+            )}
+            {c.gender === '男性' && (
+              <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-bold border border-blue-100 whitespace-nowrap">男性</span>
+            )}
             {c.line_user_id && (
-              <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[8px] font-black border border-emerald-100 animate-in fade-in scale-in duration-300">
+              <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[9px] font-black border border-emerald-100 whitespace-nowrap">
                 <MessageCircle className="w-2.5 h-2.5 fill-emerald-600/10" />
                 LINE
               </div>
             )}
           </div>
-          <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">
+          <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-tight mt-1">
             {c.name_kana || "-"}
           </div>
         </TableCell>
-        <TableCell className="px-2 py-3">
+        <TableCell className="px-2 py-3 w-[25%] min-w-[120px]">
           {statusBadge}
         </TableCell>
-        <TableCell className="text-right px-2 py-3">
+        <TableCell className="px-2 py-3 w-[30%] min-w-[140px]">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
+              <span className="text-gray-400 font-bold bg-gray-100 px-1.5 rounded-sm whitespace-nowrap">直近</span>
+              <span className={c.lastVisitDate ? "text-gray-700 font-bold" : "text-gray-300 italic font-medium"}>
+                {c.lastVisitDate ? new Date(c.lastVisitDate).toLocaleDateString("ja-JP", { month: 'short', day: 'numeric' }) : "なし"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
+              <span className="text-[var(--salon-purple)]/70 font-bold bg-[var(--salon-purple)]/10 px-1.5 rounded-sm whitespace-nowrap">次回</span>
+              <span className={c.nextVisit ? "text-[var(--salon-purple)] font-bold" : "text-gray-300 italic font-medium"}>
+                {c.nextVisit ? (
+                  `${new Date(c.nextVisit.visit_date).toLocaleDateString("ja-JP", { month: 'short', day: 'numeric' })}${c.nextVisit.visit_time ? ` ${c.nextVisit.visit_time.substring(0, 5)}` : ''}`
+                ) : "なし"}
+              </span>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="text-right px-2 py-3 w-[15%]">
           <Link href={`/customers/${c.id}`}>
-            <Button variant="ghost" size="sm" className="h-8 w-8 sm:w-auto sm:px-3 hover:bg-[var(--salon-purple)]/5 hover:text-[var(--salon-purple)] font-black text-xs">
+            <Button variant="ghost" size="sm" className="h-8 w-8 sm:w-auto sm:px-3 hover:bg-[var(--salon-purple)]/5 hover:text-[var(--salon-purple)] font-black text-xs shrink-0">
               <FileText className="h-4 w-4 sm:mr-1.5 shrink-0" />
               <span className="hidden sm:inline">詳細</span>
             </Button>
@@ -293,8 +332,9 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
           <Table>
             <TableHeader className="bg-gray-50/50">
               <TableRow className="border-gray-100">
-                <TableHead className="font-black text-gray-400 text-xs px-2 py-4">お名前</TableHead>
+                <TableHead className="font-black text-gray-400 text-xs px-2 py-4">お名前・性別</TableHead>
                 <TableHead className="font-black text-gray-400 text-xs px-2 py-4">契約状況</TableHead>
+                <TableHead className="font-black text-gray-400 text-xs px-2 py-4">来店状況</TableHead>
                 <TableHead className="text-right font-black text-gray-400 text-xs px-2 py-4">操作</TableHead>
               </TableRow>
             </TableHeader>

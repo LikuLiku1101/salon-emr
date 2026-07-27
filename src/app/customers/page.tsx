@@ -12,9 +12,9 @@ export default async function CustomersPage() {
   const { data: customers } = await supabase
     .from("customers")
     .select(`
-      id, name, name_kana, line_user_id,
+      id, name, name_kana, gender, line_user_id,
       contracts ( id, course_name, status, installments, created_at ),
-      treatments ( contract_id, status, visit_date )
+      treatments ( contract_id, status, visit_date, visit_time )
     `)
     .order("name_kana", { ascending: true });
 
