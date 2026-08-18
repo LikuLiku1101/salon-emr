@@ -6,10 +6,12 @@ import { format, parse, startOfWeek, getDay } from "date-fns";
 import { ja } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter, usePathname } from "next/navigation";
 import * as JapaneseHolidays from "japanese-holidays";
 import { cn } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { Clock, User } from "lucide-react";
 
 // 日本語のローカライズ設定
 const locales = {
@@ -29,6 +31,10 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
+
+  // 同日の複数予約を表示するための状態
+  const [selectedDayEvents, setSelectedDayEvents] = useState<any[] | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
   // Reset loading state when the page changes
   useEffect(() => {
@@ -186,6 +192,15 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
               "text-[11px] font-bold hover:underline",
               isRedDay ? "text-red-500" : isBlueDay ? "text-blue-500" : "text-gray-500"
             )}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (dayEvents.length >= 2) {
+                setSelectedDay(date);
+                setSelectedDayEvents(dayEvents);
+              } else if (dayEvents.length === 1) {
+                handleSelectEvent(dayEvents[0]);
+              }
+            }}
           >
             {label}
           </button>
@@ -216,7 +231,15 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
             return (
               <div 
                 key={event.id}
-                onClick={(e) => { e.stopPropagation(); handleSelectEvent(event); }}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (dayEvents.length >= 2) {
+                    setSelectedDay(date);
+                    setSelectedDayEvents(dayEvents);
+                  } else {
+                    handleSelectEvent(event); 
+                  }
+                }}
                 className={cn(
                   "flex items-center gap-1 rounded px-1 py-[3px] cursor-pointer hover:bg-black/5 transition-colors w-full text-left",
                   isCancelled ? "opacity-50" : "",
@@ -385,7 +408,95 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
           noEventsInRange: "なし",
           showMore: (count) => `+${count}`
         }}
+        onSelectSlot={({ start, action }) => {
+          if (action === 'click') {
+            const dayEvents = events.filter(e => 
+              e.start.getDate() === start.getDate() && 
+              e.start.getMonth() === start.getMonth() && 
+              e.start.getFullYear() === start.getFullYear()
+            );
+            if (dayEvents.length >= 2) {
+              setSelectedDay(start);
+              setSelectedDayEvents(dayEvents);
+            } else if (dayEvents.length === 1) {
+              handleSelectEvent(dayEvents[0]);
+            }
+          }
+        }}
+        selectable={true}
       />
+
+      {/* 同日複数予約の一覧ダイアログ */}
+      <Dialog open={!!selectedDayEvents} onOpenChange={(open) => { if (!open) setSelectedDayEvents(null); }}>
+        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden">
+          <DialogHeader className="bg-gray-50 p-4 border-b border-gray-100">
+            <DialogTitle className="flex items-center gap-2 text-lg font-black text-gray-800">
+              {selectedDay ? format(selectedDay, 'yyyy年M月d日 (E)', { locale: ja }) : ''} 
+              <span className="text-sm font-bold text-gray-400">の予約一覧</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 max-h-[60vh] overflow-y-auto space-y-3 bg-white">
+            {selectedDayEvents?.map((event) => {
+              const t = event.resource;
+              const isCancelled = t.status === 'キャンセル';
+              
+              // 施術内容の構築（カレンダーイベントと同じロジック）
+              let displayContent = "";
+              const courseName = t.contracts?.course_name;
+              const reserved = t.reserved_content;
+              if (courseName) {
+                displayContent = courseName;
+              } else if (reserved) {
+                displayContent = reserved;
+              } else if (t.treatment_details && t.treatment_details.length > 0) {
+                const parts = t.treatment_details.map((d: any) => d.body_part);
+                displayContent = parts.join("、");
+              } else {
+                displayContent = `(${t.visit_count}回目)`;
+              }
+
+              return (
+                <div 
+                  key={event.id}
+                  onClick={() => {
+                    setSelectedDayEvents(null);
+                    handleSelectEvent(event);
+                  }}
+                  className={cn(
+                    "flex flex-col p-4 rounded-xl border transition-all cursor-pointer active:scale-[0.98]",
+                    isCancelled 
+                      ? "bg-red-50/50 border-red-100 hover:border-red-200" 
+                      : t.isPast 
+                        ? "bg-gray-50 border-gray-200 hover:border-gray-300"
+                        : "bg-white shadow-sm border-gray-200 hover:border-[var(--salon-purple)]/50 hover:shadow-md"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-[var(--salon-purple)]/10 text-[var(--salon-purple)] px-2 py-1 rounded-md text-sm font-black flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {t.visit_time ? t.visit_time.substring(0, 5) : "時間未定"}
+                      </div>
+                      {isCancelled && (
+                        <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">キャンセル</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mb-1">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="text-base font-black text-gray-800">{t.customers?.name || "お名前未登録"} 様</span>
+                  </div>
+                  
+                  <div className="text-sm font-bold text-gray-500 pl-6 line-clamp-2 leading-snug">
+                    {displayContent}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
