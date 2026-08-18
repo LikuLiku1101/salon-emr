@@ -472,11 +472,16 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                   )}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="bg-[var(--salon-purple)]/10 text-[var(--salon-purple)] px-2 py-1 rounded-md text-sm font-black flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {t.visit_time ? t.visit_time.substring(0, 5) : "時間未定"}
                       </div>
+                      {t.staff?.name && (
+                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200">
+                          担当: {t.staff.name}
+                        </span>
+                      )}
                       {isCancelled && (
                         <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">キャンセル</span>
                       )}
