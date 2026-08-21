@@ -1220,39 +1220,7 @@ export default function TreatmentForm({
             name="reserved_content" 
             value={bookedCourse ? (bookedPoints.length > 0 ? `${bookedCourse}、${bookedPoints.join('、')}` : bookedCourse) : bookedPoints.join('、')} 
           />
-          {/* キャンペーン選択 */}
-          <div className="space-y-4 pt-10 border-t">
-            <h3 className="font-bold text-xl border-l-4 border-[var(--salon-purple)] pl-2 text-gray-800">キャンペーン</h3>
-            <div className="bg-gray-50 p-4 rounded-md border">
-              <div className="space-y-2">
-                <Label className="font-bold text-gray-700">適用するキャンペーンを選択</Label>
-                <div className="relative">
-                  <select
-                    value={selectedCampaign}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedCampaign(val);
-                      if (val && CAMPAIGNS[val]) {
-                        setPaymentAmount(CAMPAIGNS[val].toString());
-                        setIsAmountManuallyEdited(true); // キャンペーン選択時は手動上書き扱いにして自動計算を防ぐ
-                      } else {
-                        setIsAmountManuallyEdited(false); // なしに戻した時は再計算
-                      }
-                    }}
-                    className="h-11 w-full bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 px-4 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
-                  >
-                    <option value="">キャンペーンを利用しない</option>
-                    {Object.keys(CAMPAIGNS).map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                    <ChevronRight className="w-4 h-4 rotate-90" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+
           
           {/* 来店・お支払い情報・ハンドピース */}
           <div className="space-y-6 pt-10 border-t">
@@ -1349,6 +1317,35 @@ export default function TreatmentForm({
                   </div>
                 </div>
               )}
+
+              {/* キャンペーン選択 */}
+              <div className="space-y-2 col-span-1 md:col-span-2 pt-2 border-t mt-2">
+                <Label className="font-bold text-gray-700">適用するキャンペーン</Label>
+                <div className="relative">
+                  <select
+                    value={selectedCampaign}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedCampaign(val);
+                      if (val && CAMPAIGNS[val]) {
+                        setPaymentAmount(CAMPAIGNS[val].toString());
+                        setIsAmountManuallyEdited(true); // キャンペーン選択時は手動上書き扱いにして自動計算を防ぐ
+                      } else {
+                        setIsAmountManuallyEdited(false); // なしに戻した時は再計算
+                      }
+                    }}
+                    className="h-11 w-full bg-white border border-gray-200 rounded-md text-sm font-black text-gray-800 px-3 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
+                  >
+                    <option value="">キャンペーンを利用しない</option>
+                    {Object.keys(CAMPAIGNS).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-2 col-span-1 md:col-span-2 pt-2">
                 <Label htmlFor="payment_amount" className="font-bold text-gray-700">支払金額 {isFemale && <span className="text-[var(--salon-magenta)] text-xs ml-2">※女性10%オフ適用</span>}</Label>
