@@ -87,6 +87,14 @@ const COURSES: Record<string, string[]> = {
 // 1から50までのパワー配列作成
 const POWERS = Array.from({ length: 50 }, (_, i) => (i + 1).toString());
 
+// ----- キャンペーン定義 -----
+const CAMPAIGNS: Record<string, number> = {
+  "周年キャンペーン / 全身15,000円": 15000,
+  "スポットキャンペーン / 全身19,800円": 19800,
+  "髭脱毛キャンペーン / フェイスセット9,800円": 9800,
+  "全身モニター / 全身15,000円": 15000
+};
+
 // ----- 料金定義 -----
 
 // 部位別料金
@@ -118,6 +126,17 @@ const SET_PRICING: Record<string, Record<string, number>> = {
   "全身脱毛": { "1": 30000, "3": 85000, "6": 169000, "12": 300000 }
 };
 
+const extractCampaign = (notes: string | null) => {
+  if (!notes) return "";
+  const match = notes.match(/\[キャンペーン:\s*(.*?)\]/);
+  return match ? match[1] : "";
+};
+
+const stripCampaign = (notes: string | null) => {
+  if (!notes) return "";
+  return notes.replace(/\[キャンペーン:\s*(.*?)\]\n?/g, "").trim();
+};
+
 export default function TreatmentForm({ 
   treatment, 
   treatmentDetails,
@@ -132,20 +151,20 @@ export default function TreatmentForm({
   pagination?: { prevId: string | null; nextId: string | null; }
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // キャンペーンの状態
+  const [selectedCampaign, setSelectedCampaign] = useState<string>(extractCampaign(treatment.notes));
+
   // 予約時の内容（reserved_content）から、部位リストを復元
   const predictedParts: string[] = [];
   if (treatment.reserved_content) {
-    // 1. コース名（全身脱毛など）と一致する場合、そのコースの全部位を展開
     if (COURSES[treatment.reserved_content]) {
       predictedParts.push(...COURSES[treatment.reserved_content]);
-    } 
-    // 2. コース名でない場合、カンマ区切りの部位リストとして展開
-    else {
+    } else {
       predictedParts.push(...treatment.reserved_content.split("、"));
     }
   }
 
-  // 施術実績が既にあればそれを使い、なければ予約内容を初期選択とする
   const [selectedParts, setSelectedParts] = useState<string[]>(
     treatmentDetails.length > 0 
       ? treatmentDetails.map(d => d.body_part) 
@@ -222,10 +241,14 @@ export default function TreatmentForm({
   const [details, setDetails] = useState<Record<string, Omit<TreatmentDetail, 'body_part'>>>(initialDetailsState);
 
   useEffect(() => {
-    // もし手動で金額入力されていたら、初期表示直後の自動計算はしないが、
-    // プルダウン等が変更されたら自動計算を再度走らせる。
-    // 今回はシンプルに、条件が変わるたびに再計算して値をセットする仕様にします。
-    
+    // 0. キャンペーンが選択されている場合、最優先でその金額を適用
+    if (selectedCampaign && CAMPAIGNS[selectedCampaign]) {
+       if (!isAmountManuallyEdited) {
+          setPaymentAmount(CAMPAIGNS[selectedCampaign].toString());
+       }
+       return;
+    }
+
     let total = 0;
 
     // 「一括支払い済み」の場合、セット・ポイントに関わらず基本0円。
@@ -240,7 +263,7 @@ export default function TreatmentForm({
       });
       // 追加がなければ0にする
       if (total === 0) {
-        setPaymentAmount('0');
+        if (!isAmountManuallyEdited) setPaymentAmount('0');
         return;
       }
     }
@@ -272,7 +295,7 @@ export default function TreatmentForm({
           setPaymentAmount(total.toString());
        }
     }
-  }, [paymentStatus, newSelectedSet, newSetInstallments, details, isFemale, isAmountManuallyEdited]);
+  }, [paymentStatus, newSelectedSet, newSetInstallments, details, isFemale, isAmountManuallyEdited, selectedCampaign]);
 
   // 予約時の内容から、コースまたは部位を初期化
   const [bookedCourse, setBookedCourse] = useState<string | null>(
@@ -1197,9 +1220,42 @@ export default function TreatmentForm({
             name="reserved_content" 
             value={bookedCourse ? (bookedPoints.length > 0 ? `${bookedCourse}、${bookedPoints.join('、')}` : bookedCourse) : bookedPoints.join('、')} 
           />
+          {/* キャンペーン選択 */}
+          <div className="space-y-4 pt-10 border-t">
+            <h3 className="font-bold text-xl border-l-4 border-[var(--salon-purple)] pl-2 text-gray-800">キャンペーン</h3>
+            <div className="bg-gray-50 p-4 rounded-md border">
+              <div className="space-y-2">
+                <Label className="font-bold text-gray-700">適用するキャンペーンを選択</Label>
+                <div className="relative">
+                  <select
+                    value={selectedCampaign}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedCampaign(val);
+                      if (val && CAMPAIGNS[val]) {
+                        setPaymentAmount(CAMPAIGNS[val].toString());
+                        setIsAmountManuallyEdited(true); // キャンペーン選択時は手動上書き扱いにして自動計算を防ぐ
+                      } else {
+                        setIsAmountManuallyEdited(false); // なしに戻した時は再計算
+                      }
+                    }}
+                    className="h-11 w-full bg-white border border-gray-200 rounded-xl text-sm font-black text-gray-800 px-4 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
+                  >
+                    <option value="">キャンペーンを利用しない</option>
+                    {Object.keys(CAMPAIGNS).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* 来店・お支払い情報・ハンドピース */}
-          <div className="space-y-6">
+          <div className="space-y-6 pt-10 border-t">
             <h3 className="font-bold text-xl border-l-4 border-[var(--salon-purple)] pl-2 text-gray-800">ご来店・お支払い情報</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md border">
 
@@ -1384,11 +1440,12 @@ export default function TreatmentForm({
 
             <div className="space-y-2">
               <Label htmlFor="notes" className="font-bold text-gray-700">特記事項・肌状態など</Label>
+              <input type="hidden" name="campaign_for_notes" value={selectedCampaign} />
               <Textarea 
                 id="notes" 
                 name="notes" 
                 placeholder="次回の出力予定や赤みの状態などを入力"
-                defaultValue={treatment.notes || ""}
+                defaultValue={stripCampaign(treatment.notes)}
                 className="min-h-32 text-base p-4 border-gray-300 shadow-sm"
               />
             </div>

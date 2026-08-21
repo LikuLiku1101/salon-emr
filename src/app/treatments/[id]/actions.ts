@@ -26,7 +26,10 @@ export async function saveTreatmentDetails(
     return { success: false, error: "Treatment not found" };
   }
 
-  const notes = formData.get("notes") as string;
+  const notesRaw = formData.get("notes") as string;
+  const campaign_for_notes = formData.get("campaign_for_notes") as string;
+  const notes = campaign_for_notes ? `[キャンペーン: ${campaign_for_notes}]\n${notesRaw || ""}` : notesRaw;
+
   const next_reservation_date = formData.get("next_reservation_date") as string;
   const next_reservation_time = formData.get("next_reservation_time") as string;
   
