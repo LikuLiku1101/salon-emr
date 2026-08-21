@@ -132,9 +132,21 @@ const extractCampaign = (notes: string | null) => {
   return match ? match[1] : "";
 };
 
-const stripCampaign = (notes: string | null) => {
+const extractOptions = (notes: string | null) => {
+  if (!notes) return { shaving: false, anesthesia: false };
+  return {
+    shaving: notes.includes('[オプション: 剃毛]'),
+    anesthesia: notes.includes('[オプション: 麻酔]')
+  };
+};
+
+const stripMeta = (notes: string | null) => {
   if (!notes) return "";
-  return notes.replace(/\[キャンペーン:\s*(.*?)\]\n?/g, "").trim();
+  return notes
+    .replace(/\[キャンペーン:\s*(.*?)\]\n?/g, "")
+    .replace(/\[オプション:\s*剃毛\]\n?/g, "")
+    .replace(/\[オプション:\s*麻酔\]\n?/g, "")
+    .trim();
 };
 
 export default function TreatmentForm({ 
@@ -152,8 +164,11 @@ export default function TreatmentForm({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // キャンペーンの状態
+  // キャンペーン・オプションの状態
   const [selectedCampaign, setSelectedCampaign] = useState<string>(extractCampaign(treatment.notes));
+  const initialOptions = extractOptions(treatment.notes);
+  const [hasShaving, setHasShaving] = useState(initialOptions.shaving);
+  const [hasAnesthesia, setHasAnesthesia] = useState(initialOptions.anesthesia);
 
   // 予約時の内容（reserved_content）から、部位リストを復元
   const predictedParts: string[] = [];
@@ -241,61 +256,53 @@ export default function TreatmentForm({
   const [details, setDetails] = useState<Record<string, Omit<TreatmentDetail, 'body_part'>>>(initialDetailsState);
 
   useEffect(() => {
+    let baseTotal = 0;
+    
     // 0. キャンペーンが選択されている場合、最優先でその金額を適用
     if (selectedCampaign && CAMPAIGNS[selectedCampaign]) {
-       if (!isAmountManuallyEdited) {
-          setPaymentAmount(CAMPAIGNS[selectedCampaign].toString());
-       }
-       return;
-    }
+       baseTotal = CAMPAIGNS[selectedCampaign];
+    } else {
+      // 「一括支払い済み」の場合、セット・ポイントに関わらず基本0円。
+      if (paymentStatus === '一括支払い済み') {
+        Object.keys(details).forEach(part => {
+          const data = details[part];
+          if (data && (data.power_level || "").trim() !== "") {
+            baseTotal += PART_CATEGORIES[part] || 0;
+          }
+        });
+      }
+      // 1. 本日一括支払いの場合（セット料金を加算）
+      else if (paymentStatus === '本日一括支払い' && newSelectedSet && newSetInstallments) {
+        const setPrice = SET_PRICING[newSelectedSet]?.[newSetInstallments] || 0;
+        baseTotal += setPrice;
+      } 
+      // 2. 都度払いの場合（処理された各部位の料金を加算）
+      else if (paymentStatus === '都度') {
+        Object.keys(details).forEach(part => {
+          const data = details[part];
+          if (data && (data.power_level || "").trim() !== "") {
+            baseTotal += PART_CATEGORIES[part] || 0;
+          }
+        });
+      }
 
-    let total = 0;
-
-    // 「一括支払い済み」の場合、セット・ポイントに関わらず基本0円。
-    // （過去に支払っていたセットの消化来店のため）
-    if (paymentStatus === '一括支払い済み') {
-      // 2回目以降でもポイント（部位追加）をした分は加算する
-      Object.keys(details).forEach(part => {
-        const data = details[part];
-        if (data && (data.power_level || "").trim() !== "") {
-          total += PART_CATEGORIES[part] || 0;
-        }
-      });
-      // 追加がなければ0にする
-      if (total === 0) {
-        if (!isAmountManuallyEdited) setPaymentAmount('0');
-        return;
+      // 3. 女性割引（10%オフ）※端数切り捨て
+      if (isFemale && baseTotal > 0) {
+        baseTotal = Math.floor(baseTotal * 0.9);
       }
     }
 
-    // 1. 本日一括支払いの場合（セット料金を加算）
-    if (paymentStatus === '本日一括支払い' && newSelectedSet && newSetInstallments) {
-      const setPrice = SET_PRICING[newSelectedSet]?.[newSetInstallments] || 0;
-      total += setPrice;
-    } 
-    // 2. 都度払いの場合（処理された各部位の料金を加算）
-    else if (paymentStatus === '都度') {
-      // 現在 details テーブルに追加されているパーツの料金を合算
-      Object.keys(details).forEach(part => {
-        const data = details[part];
-        if (data && (data.power_level || "").trim() !== "") {
-          total += PART_CATEGORIES[part] || 0;
-        }
-      });
-    }
-
-    // 3. 女性割引（10%オフ）※端数切り捨て
-    if (isFemale && total > 0) {
-      total = Math.floor(total * 0.9);
-    }
+    // 4. オプション加算
+    if (hasShaving) baseTotal += 1500;
+    if (hasAnesthesia) baseTotal += 2200;
 
     // 変更時のみステート更新（手動編集されていない場合のみ）
-    if (total > 0 || paymentStatus === '本日一括支払い' || paymentStatus === '都度') {
+    if (baseTotal > 0 || paymentStatus === '一括支払い済み' || paymentStatus === '本日一括支払い' || paymentStatus === '都度') {
        if (!isAmountManuallyEdited) {
-          setPaymentAmount(total.toString());
+          setPaymentAmount(baseTotal.toString());
        }
     }
-  }, [paymentStatus, newSelectedSet, newSetInstallments, details, isFemale, isAmountManuallyEdited, selectedCampaign]);
+  }, [paymentStatus, newSelectedSet, newSetInstallments, details, isFemale, isAmountManuallyEdited, selectedCampaign, hasShaving, hasAnesthesia]);
 
   // 予約時の内容から、コースまたは部位を初期化
   const [bookedCourse, setBookedCourse] = useState<string | null>(
@@ -1327,12 +1334,7 @@ export default function TreatmentForm({
                     onChange={(e) => {
                       const val = e.target.value;
                       setSelectedCampaign(val);
-                      if (val && CAMPAIGNS[val]) {
-                        setPaymentAmount(CAMPAIGNS[val].toString());
-                        setIsAmountManuallyEdited(true); // キャンペーン選択時は手動上書き扱いにして自動計算を防ぐ
-                      } else {
-                        setIsAmountManuallyEdited(false); // なしに戻した時は再計算
-                      }
+                      setIsAmountManuallyEdited(false); // 再計算を許可
                     }}
                     className="h-11 w-full bg-white border border-gray-200 rounded-md text-sm font-black text-gray-800 px-3 outline-none focus:ring-2 focus:ring-[var(--salon-purple)]/20 transition-all cursor-pointer hover:border-[var(--salon-purple)]/30 appearance-none shadow-sm"
                   >
@@ -1347,7 +1349,38 @@ export default function TreatmentForm({
                 </div>
               </div>
 
-              <div className="space-y-2 col-span-1 md:col-span-2 pt-2">
+              {/* 追加オプション */}
+              <div className="space-y-2 col-span-1 md:col-span-2 pt-2 border-t mt-2">
+                <Label className="font-bold text-gray-700">追加オプション</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 border rounded-md shadow-sm hover:bg-gray-50 transition-colors flex-1">
+                    <input 
+                      type="checkbox" 
+                      checked={hasShaving}
+                      onChange={(e) => {
+                        setHasShaving(e.target.checked);
+                        setIsAmountManuallyEdited(false); // 再計算を許可
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-[var(--salon-purple)] focus:ring-[var(--salon-purple)]"
+                    />
+                    <span className="text-sm font-bold text-gray-700">剃毛 (+1,500円)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 border rounded-md shadow-sm hover:bg-gray-50 transition-colors flex-1">
+                    <input 
+                      type="checkbox" 
+                      checked={hasAnesthesia}
+                      onChange={(e) => {
+                        setHasAnesthesia(e.target.checked);
+                        setIsAmountManuallyEdited(false); // 再計算を許可
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-[var(--salon-purple)] focus:ring-[var(--salon-purple)]"
+                    />
+                    <span className="text-sm font-bold text-gray-700">麻酔 (+2,200円)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2 col-span-1 md:col-span-2 pt-2 border-t mt-2">
                 <Label htmlFor="payment_amount" className="font-bold text-gray-700">支払金額 {isFemale && <span className="text-[var(--salon-magenta)] text-xs ml-2">※女性10%オフ適用</span>}</Label>
                 <div className="relative">
                   <Input 
@@ -1438,11 +1471,13 @@ export default function TreatmentForm({
             <div className="space-y-2">
               <Label htmlFor="notes" className="font-bold text-gray-700">特記事項・肌状態など</Label>
               <input type="hidden" name="campaign_for_notes" value={selectedCampaign} />
+              <input type="hidden" name="has_shaving" value={hasShaving ? "true" : ""} />
+              <input type="hidden" name="has_anesthesia" value={hasAnesthesia ? "true" : ""} />
               <Textarea 
                 id="notes" 
                 name="notes" 
                 placeholder="次回の出力予定や赤みの状態などを入力"
-                defaultValue={stripCampaign(treatment.notes)}
+                defaultValue={stripMeta(treatment.notes)}
                 className="min-h-32 text-base p-4 border-gray-300 shadow-sm"
               />
             </div>

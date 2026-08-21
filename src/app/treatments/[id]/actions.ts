@@ -28,8 +28,15 @@ export async function saveTreatmentDetails(
 
   const notesRaw = formData.get("notes") as string;
   const campaign_for_notes = formData.get("campaign_for_notes") as string;
-  const notes = campaign_for_notes ? `[キャンペーン: ${campaign_for_notes}]\n${notesRaw || ""}` : notesRaw;
+  const has_shaving = formData.get("has_shaving") === "true";
+  const has_anesthesia = formData.get("has_anesthesia") === "true";
 
+  let prefixes = [];
+  if (campaign_for_notes) prefixes.push(`[キャンペーン: ${campaign_for_notes}]`);
+  if (has_shaving) prefixes.push(`[オプション: 剃毛]`);
+  if (has_anesthesia) prefixes.push(`[オプション: 麻酔]`);
+
+  const notes = prefixes.length > 0 ? `${prefixes.join("\n")}\n${notesRaw || ""}` : notesRaw;
   const next_reservation_date = formData.get("next_reservation_date") as string;
   const next_reservation_time = formData.get("next_reservation_time") as string;
   
