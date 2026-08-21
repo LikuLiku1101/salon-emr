@@ -415,6 +415,10 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
               e.start.getMonth() === start.getMonth() && 
               e.start.getFullYear() === start.getFullYear()
             );
+            
+            // イベントを時間順にソート
+            dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+
             if (dayEvents.length >= 2) {
               setSelectedDay(start);
               setSelectedDayEvents(dayEvents);
