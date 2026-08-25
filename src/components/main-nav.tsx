@@ -17,7 +17,7 @@ export function MainNav({ staffName }: { staffName?: string }) {
 
   return (
     <nav className="border-b bg-white dark:bg-zinc-950 px-4 sm:px-6 py-3 sm:py-4 shadow-sm">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
+      <div className="flex items-center justify-between w-full max-w-[1920px] mx-auto">
         <div className="flex items-center gap-4 sm:gap-8">
           <LoadingLink href="/" className="flex items-center">
             <img 

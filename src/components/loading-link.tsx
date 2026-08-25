@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { LoadingSpinner } from "./loading-spinner";
 import { cn } from "@/lib/utils";
 
@@ -22,21 +23,20 @@ export function LoadingLink({ href, children, className }: LoadingLinkProps) {
   }, [pathname]);
 
   const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
     setIsLoading(true);
-    router.push(href);
   };
 
   return (
     <>
       {isLoading && <LoadingSpinner />}
-      <a 
+      <Link 
         href={href} 
         onClick={handleClick} 
         className={className}
+        prefetch={true}
       >
         {children}
-      </a>
+      </Link>
     </>
   );
 }

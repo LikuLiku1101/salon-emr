@@ -23,8 +23,8 @@ export default async function TreatmentsPage() {
     .order("visit_date", { ascending: false });
 
   return (
-    <div className="p-2 max-w-7xl mx-auto">
-      <div className="flex justify-end items-center gap-2 mb-2 pt-2 pr-2">
+    <div className="p-2 sm:p-4 w-full max-w-[1920px] mx-auto h-[calc(100vh-80px)] flex flex-col">
+      <div className="flex justify-end items-center gap-2 mb-2 pr-2 shrink-0">
         <LoadingLink href="/treatments/new-sheet">
           <Button size="sm" variant="outline" className="border-[var(--salon-purple)] text-[var(--salon-purple)] hover:bg-[var(--salon-purple)]/5 font-black h-9 px-4 rounded-lg shadow-sm">
             <FilePlus className="h-4 w-4 mr-1.5" />

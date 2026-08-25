@@ -324,7 +324,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   };
 
   return (
-    <div className="h-[750px] w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative overflow-hidden">
+    <div className="flex-1 w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative overflow-hidden min-h-[600px]">
       {isLoading && <LoadingSpinner />}
       <style jsx global>{`
         /* TimeTree風カスタム設定 */
