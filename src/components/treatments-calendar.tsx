@@ -219,11 +219,9 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
             )}
             onClick={(e) => {
               e.stopPropagation();
-              if (dayEvents.length >= 2) {
+              if (dayEvents.length >= 1) {
                 setSelectedDay(date);
                 setSelectedDayEvents(dayEvents);
-              } else if (dayEvents.length === 1) {
-                handleSelectEvent(dayEvents[0]);
               }
             }}
           >
@@ -258,11 +256,9 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                 key={event.id}
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  if (dayEvents.length >= 2) {
+                  if (dayEvents.length >= 1) {
                     setSelectedDay(date);
                     setSelectedDayEvents(dayEvents);
-                  } else {
-                    handleSelectEvent(event); 
                   }
                 }}
                 className={cn(
@@ -327,6 +323,12 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
 
         {/* 凡例 (Legend) */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
+          <div 
+            className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-gray-100", !filterType ? 'bg-gray-100 ring-1 ring-gray-200' : 'opacity-40')}
+            onClick={() => setFilterType(null)}
+          >
+            <span className="text-[10px] font-black text-gray-700">全部</span>
+          </div>
           <div 
             className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-green-50", filterType === '377e02bb-7aea-4eb7-9328-ee9d57ec85e1' ? 'bg-green-50 ring-1 ring-green-200' : filterType ? 'opacity-40' : '')}
             onClick={() => setFilterType(prev => prev === '377e02bb-7aea-4eb7-9328-ee9d57ec85e1' ? null : '377e02bb-7aea-4eb7-9328-ee9d57ec85e1')}
@@ -456,11 +458,9 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
             // イベントを時間順にソート
             dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-            if (dayEvents.length >= 2) {
+            if (dayEvents.length >= 1) {
               setSelectedDay(start);
               setSelectedDayEvents(dayEvents);
-            } else if (dayEvents.length === 1) {
-              handleSelectEvent(dayEvents[0]);
             }
           }
         }}
@@ -533,8 +533,10 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                   </div>
                   
                   <div className="flex items-center gap-2 mb-1">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-base font-black text-gray-800">{t.customers?.name || "お名前未登録"} 様</span>
+                    <User className={cn("w-4 h-4", t.isUnfinished ? "text-orange-500" : "text-gray-400")} />
+                    <span className={cn("text-base font-black", t.isUnfinished ? "text-orange-600" : "text-gray-800")}>
+                      {t.isUnfinished && "【未入力】"} {t.customers?.name || "お名前未登録"} 様
+                    </span>
                   </div>
                   
                   <div className="text-sm font-bold text-gray-500 pl-6 line-clamp-2 leading-snug">
