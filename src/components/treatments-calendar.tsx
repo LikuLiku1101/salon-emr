@@ -105,6 +105,22 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     });
   }, [treatments]);
 
+  const [filterType, setFilterType] = useState<string | null>(null);
+
+  const filteredEvents = useMemo(() => {
+    if (!filterType) return events;
+    return events.filter(e => {
+      const staffId = e.resource?.staff?.id || "default";
+      const isCancelled = e.resource?.status === 'キャンセル';
+      
+      if (filterType === 'cancel') return isCancelled;
+      if (filterType === 'default') return !isCancelled && staffId === 'default';
+      if (filterType === staffId) return !isCancelled;
+      
+      return false;
+    });
+  }, [events, filterType]);
+
   // カレンダーのイベントをクリックしたときの処理
   const handleSelectEvent = (event: any) => {
     setIsLoading(true);
@@ -183,7 +199,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     const isBlueDay = day === 6;
 
     // この日のイベントを取得
-    const dayEvents = events.filter(e => 
+    const dayEvents = filteredEvents.filter(e => 
       e.start.getDate() === date.getDate() && 
       e.start.getMonth() === date.getMonth() && 
       e.start.getFullYear() === date.getFullYear()
@@ -311,19 +327,31 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
 
         {/* 凡例 (Legend) */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1">
-          <div className="flex items-center gap-1.5">
+          <div 
+            className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-green-50", filterType === '377e02bb-7aea-4eb7-9328-ee9d57ec85e1' ? 'bg-green-50 ring-1 ring-green-200' : filterType ? 'opacity-40' : '')}
+            onClick={() => setFilterType(prev => prev === '377e02bb-7aea-4eb7-9328-ee9d57ec85e1' ? null : '377e02bb-7aea-4eb7-9328-ee9d57ec85e1')}
+          >
             <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-green-200"></div>
             <span className="text-[10px] font-black text-gray-500">須原</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div 
+            className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-sky-50", filterType === '280b61fe-3b23-44ab-91d0-08916f07c88f' ? 'bg-sky-50 ring-1 ring-sky-200' : filterType ? 'opacity-40' : '')}
+            onClick={() => setFilterType(prev => prev === '280b61fe-3b23-44ab-91d0-08916f07c88f' ? null : '280b61fe-3b23-44ab-91d0-08916f07c88f')}
+          >
             <div className="w-3 h-3 rounded-full bg-sky-500 border-2 border-sky-200"></div>
             <span className="text-[10px] font-black text-gray-500">大谷</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div 
+            className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-red-50", filterType === 'cancel' ? 'bg-red-50 ring-1 ring-red-200' : filterType ? 'opacity-40' : '')}
+            onClick={() => setFilterType(prev => prev === 'cancel' ? null : 'cancel')}
+          >
             <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-red-200"></div>
             <span className="text-[10px] font-black text-gray-500">キャンセル</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div 
+            className={cn("flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md transition-all hover:bg-purple-50", filterType === 'default' ? 'bg-purple-50 ring-1 ring-purple-200' : filterType ? 'opacity-40' : '')}
+            onClick={() => setFilterType(prev => prev === 'default' ? null : 'default')}
+          >
             <div className="w-3 h-3 rounded-full bg-purple-500 border-2 border-purple-200"></div>
             <span className="text-[10px] font-black text-gray-500">その他</span>
           </div>
@@ -386,7 +414,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       `}</style>
       <Calendar
         localizer={localizer}
-        events={events}
+        events={filteredEvents}
         startAccessor="start"
         endAccessor="end"
         style={{ flex: 1 }}
@@ -419,7 +447,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         }}
         onSelectSlot={({ start, action }) => {
           if (action === 'click') {
-            const dayEvents = events.filter(e => 
+            const dayEvents = filteredEvents.filter(e => 
               e.start.getDate() === start.getDate() && 
               e.start.getMonth() === start.getMonth() && 
               e.start.getFullYear() === start.getFullYear()
