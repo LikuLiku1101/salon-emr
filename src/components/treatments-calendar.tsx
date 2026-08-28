@@ -81,14 +81,23 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         displayContent = `(${t.visit_count}回目)`;
       }
 
+      // 未入力判定: 過去の予約で、キャンセルされておらず、施術詳細も支払いステータスも登録されていない場合
+      const isUnfinished = isPast && t.status !== 'キャンセル' && (!t.treatment_details || t.treatment_details.length === 0) && !t.payment_status;
+
+      let titleStr = `${t.customers?.name || "登録なし"}\n[${displayContent}]`;
+      if (isUnfinished) {
+        titleStr = `【未入力】${t.customers?.name || "登録なし"}\n[${displayContent}]`;
+      }
+
       return {
         id: t.id,
-        title: `${t.customers?.name || "登録なし"}\n[${displayContent}]`,
+        title: titleStr,
         start,
         end,
         resource: {
           ...t,
           isPast,
+          isUnfinished,
           status: t.status
         },
         allDay: !t.visit_time, // 時間がない場合は終日扱い
@@ -488,6 +497,9 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                       )}
                       {isCancelled && (
                         <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">キャンセル</span>
+                      )}
+                      {t.isUnfinished && (
+                        <span className="text-[10px] font-bold text-orange-600 bg-orange-100 border border-orange-200 px-1.5 py-0.5 rounded">未入力</span>
                       )}
                     </div>
                   </div>

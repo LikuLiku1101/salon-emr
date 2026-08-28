@@ -13,7 +13,7 @@ export default async function TreatmentsPage() {
     .from("treatments")
     .select(
       `
-      id, visit_date, visit_time, visit_count, next_reservation_date, reserved_content, status,
+      id, visit_date, visit_time, visit_count, next_reservation_date, reserved_content, status, payment_status,
       customers ( name, name_kana ),
       staff ( id, name ),
       contracts ( course_name ),
