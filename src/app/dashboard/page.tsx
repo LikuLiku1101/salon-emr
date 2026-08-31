@@ -3,6 +3,7 @@ import { ArrowLeft, TrendingUp, CalendarCheck, FileSpreadsheet, DollarSign, User
 import Link from "next/link";
 import { SyncButton } from "./sync-button";
 import { MonthSelector } from "./month-selector";
+import { StaffReportCard } from "./staff-report-card";
 
 const COURSE_PRICES: Record<string, number> = {
   "全身脱毛": 30000,
@@ -60,9 +61,10 @@ export default async function DashboardPage({
   // 1. 今月の全カルテ (売上が0のものも含む。出勤日数の計算用)
   const { data: allTreatments } = await supabase
     .from("treatments")
-    .select("payment_amount, payment_status, visit_date, staff(name), contracts(total_amount, installments)")
+    .select("id, payment_amount, payment_status, status, visit_date, reserved_content, staff(name), customers(name, gender), contracts(total_amount, installments, course_name), treatment_details(body_part)")
     .gte("visit_date", firstDay)
-    .lte("visit_date", lastDay);
+    .lte("visit_date", lastDay)
+    .order("visit_date", { ascending: true });
 
   const staffSales: Record<string, number> = {};
   const staffWorkDays: Record<string, Set<string>> = {};
@@ -118,63 +120,38 @@ export default async function DashboardPage({
   let totalTransport = 0;
   
   const staffDetails = Object.keys(staffSales)
-    .filter(name => name !== '担当不明' && staffSales[name] !== undefined)
-    .map(staffName => {
-      const sales = staffSales[staffName];
-      const days = staffWorkDays[staffName].size;
-      const config = STAFF_CONFIG[staffName] || { commissionRate: 0, transportFee: 0 };
-      
-      const payroll = Math.floor(sales * config.commissionRate);
-      const transport = days * config.transportFee;
-      
-      totalPayroll += payroll;
-      totalTransport += transport;
-      
-      return { name: staffName, sales, days, payroll, transport };
-    })
-    .sort((a, b) => b.sales - a.sales);
-
-  const grossProfit = totalSales - totalPayroll - totalTransport;
-  const operatingProfit = grossProfit - FIXED_COSTS.rent - FIXED_COSTS.machine;
-  const profitMargin = totalSales > 0 ? (operatingProfit / totalSales) * 100 : 0;
-
-  // 2. 今月の見込み売上 (未来の予約)
+  // 2. 今月の見込み売上・データ計算
   const searchStartDay = today > firstDay ? today : firstDay;
 
-  const { data: futureReservations } = await supabase
-    .from("treatments")
-    .select("id, reserved_content, visit_date, customers(gender), staff(name)")
-    .gte("visit_date", searchStartDay)
-    .lte("visit_date", lastDay);
-    
-  const reservationCount = futureReservations?.length || 0;
-  
   let estimatedSales = 0;
-  
-  // 見込み込みのデータ（Projected）を計算
   let projectedTotalSales = totalSales;
   const projectedStaffSales = { ...staffSales };
   const projectedStaffWorkDays: Record<string, Set<string>> = {};
   
-  // Setのディープコピー
+  // Set的コピー
   for (const [staff, days] of Object.entries(staffWorkDays)) {
     projectedStaffWorkDays[staff] = new Set(days);
   }
 
-  if (futureReservations) {
-    for (const res of futureReservations) {
+  // 全ての予約に projectedAmount を計算して付与し、見込み売上を計算
+  const futureReservations = allTreatments?.filter(t => t.visit_date && t.visit_date >= searchStartDay) || [];
+  const reservationCount = futureReservations.length;
+
+  if (allTreatments) {
+    for (const res of (allTreatments as any[])) {
       const gender = Array.isArray(res.customers) ? res.customers[0]?.gender : (res.customers as any)?.gender;
-      const price = calculateEstimatedPrice(res.reserved_content, gender);
-      
-      const staffName = Array.isArray(res.staff) ? res.staff[0]?.name : (res.staff as any)?.name || "担当不明";
-      
-      estimatedSales += price;
-      projectedTotalSales += price;
-      
-      if (!projectedStaffSales[staffName]) projectedStaffSales[staffName] = 0;
-      projectedStaffSales[staffName] += price;
-      
-      if (res.visit_date) {
+      res.projectedAmount = calculateEstimatedPrice(res.reserved_content, gender);
+
+      if (res.visit_date && res.visit_date >= searchStartDay) {
+        const staffName = Array.isArray(res.staff) ? res.staff[0]?.name : (res.staff as any)?.name || "担当不明";
+        const price = res.projectedAmount;
+        
+        estimatedSales += price;
+        projectedTotalSales += price;
+        
+        if (!projectedStaffSales[staffName]) projectedStaffSales[staffName] = 0;
+        projectedStaffSales[staffName] += price;
+        
         if (!projectedStaffWorkDays[staffName]) projectedStaffWorkDays[staffName] = new Set();
         projectedStaffWorkDays[staffName].add(res.visit_date);
       }
@@ -307,22 +284,12 @@ export default async function DashboardPage({
               <h4 className="text-sm font-bold text-gray-400 border-b pb-2">スタッフ別 報酬内訳</h4>
               <div className="space-y-3">
                 {displayStaffDetails.map(staff => (
-                  <div key={staff.name} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-gray-700 text-lg">{staff.name}</span>
-                      <span className="text-xs font-bold text-gray-400">
-                        売上: ¥{staff.sales.toLocaleString()} <br className="sm:hidden" />({staff.days}日出勤)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600 font-bold">給与 (歩合)</span>
-                      <span className="font-bold">¥{staff.payroll.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600 font-bold">交通費</span>
-                      <span className="font-bold">¥{staff.transport.toLocaleString()}</span>
-                    </div>
-                  </div>
+                  <StaffReportCard 
+                    key={staff.name} 
+                    staff={staff} 
+                    reservations={allTreatments || []}
+                    activeTab={activeTab}
+                  />
                 ))}
                 {displayStaffDetails.length === 0 && (
                   <p className="text-sm text-gray-400 font-bold text-center py-8 bg-gray-50 rounded-xl border border-dashed">
