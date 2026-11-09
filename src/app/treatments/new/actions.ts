@@ -105,7 +105,6 @@ export async function createReservation(formData: FormData) {
       }
 
       await sendLineMessage(customer.line_user_id, message);
-      await sendAdminNotification(`【下記の通りLINEを送信しました】\n対象：${customer.name}様（予約確定通知）\n\n${message}`);
       
       // 送信済みフラグを更新
       await supabase.from("treatments").update({ line_notified: true }).eq("id", treatment.id);
