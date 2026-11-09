@@ -49,7 +49,6 @@ export async function GET(request: Request) {
 
     // 4. 各スタッフにリマインドを送信
     const results = [];
-    let summaryMessage = "【本日スタッフへのリマインド送信完了】\n\n";
 
     for (const staffId in staffSchedules) {
       const { staff, appointments } = staffSchedules[staffId];
@@ -69,22 +68,9 @@ export async function GET(request: Request) {
       try {
         await sendLineMessage(targetLineId, message);
         results.push({ staff: staff.name, status: 'success' });
-        summaryMessage += `■ ${staff.name}様へ送信：\n${appointmentList}\n\n`;
       } catch (err: any) {
         console.error(`Failed to send reminder to ${staff.name}:`, err);
         results.push({ staff: staff.name, status: 'failed', error: err.message });
-        summaryMessage += `× ${staff.name}様への送信失敗：${err.message}\n\n`;
-      }
-    }
-
-    // 5. オーナー（守屋様）へのサマリー通知
-    const ownerId = process.env.OWNER_LINE_USER_ID;
-    if (ownerId && results.length > 0) {
-      try {
-        await sendLineMessage(ownerId, summaryMessage.trim());
-        results.push({ staff: 'Owner Notification', status: 'success' });
-      } catch (err: any) {
-        console.error('Failed to send summary to owner:', err);
       }
     }
 
