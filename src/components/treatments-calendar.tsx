@@ -11,7 +11,7 @@ import { useRouter, usePathname } from "next/navigation";
 import * as JapaneseHolidays from "japanese-holidays";
 import { cn } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { Clock, User } from "lucide-react";
+import { Clock, User, CalendarDays } from "lucide-react";
 
 // 日本語のローカライズ設定
 const locales = {
@@ -120,6 +120,15 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       return false;
     });
   }, [events, filterType]);
+
+  // 表示中の年月の予約リスト（日時順）
+  const currentMonthEvents = useMemo(() => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return filteredEvents
+      .filter((e) => e.start.getFullYear() === year && e.start.getMonth() === month)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+  }, [filteredEvents, date]);
 
   // カレンダーのイベントをクリックしたときの処理
   const handleSelectEvent = (event: any) => {
@@ -363,7 +372,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   };
 
   return (
-    <div className="flex-1 w-full bg-white dark:bg-zinc-950 p-1 rounded-xl border shadow-sm flex flex-col relative overflow-hidden min-h-[600px]">
+    <div className="flex-1 w-full flex flex-col lg:flex-row gap-3 relative overflow-y-auto lg:overflow-hidden min-h-[600px]">
       {isLoading && <LoadingSpinner />}
       <style jsx global>{`
         /* TimeTree風カスタム設定 */
@@ -414,58 +423,152 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <Calendar
-        localizer={localizer}
-        events={filteredEvents}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ flex: 1 }}
-        views={["month", "week", "day"]}
-        view={view}
-        date={date}
-        onView={(v) => setView(v)}
-        onNavigate={(d) => setDate(d)}
-        onSelectEvent={handleSelectEvent}
-        eventPropGetter={eventStyleGetter}
-        dayPropGetter={dayPropGetter}
-        components={{
-          toolbar: CustomToolbar,
-          event: CustomEvent,
-          month: {
-            dateHeader: CustomDateHeader
-          }
-        }}
-        culture="ja"
-        messages={{
-          next: "次",
-          previous: "前",
-          today: "今日",
-          month: "月",
-          week: "週",
-          day: "日",
-          agenda: "一覧",
-          noEventsInRange: "なし",
-          showMore: (count) => `+${count}`
-        }}
-        onSelectSlot={({ start, action }) => {
-          if (action === 'click') {
-            const dayEvents = filteredEvents.filter(e => 
-              e.start.getDate() === start.getDate() && 
-              e.start.getMonth() === start.getMonth() && 
-              e.start.getFullYear() === start.getFullYear()
-            );
-            
-            // イベントを時間順にソート
-            dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
 
-            if (dayEvents.length >= 1) {
-              setSelectedDay(start);
-              setSelectedDayEvents(dayEvents);
+      {/* 左側：カレンダーエリア */}
+      <div className="flex-1 bg-white dark:bg-zinc-950 p-1 sm:p-2 rounded-xl border shadow-sm flex flex-col overflow-hidden min-h-[520px] shrink-0 lg:shrink">
+        <Calendar
+          localizer={localizer}
+          events={filteredEvents}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ flex: 1 }}
+          views={["month", "week", "day"]}
+          view={view}
+          date={date}
+          onView={(v) => setView(v)}
+          onNavigate={(d) => setDate(d)}
+          onSelectEvent={handleSelectEvent}
+          eventPropGetter={eventStyleGetter}
+          dayPropGetter={dayPropGetter}
+          components={{
+            toolbar: CustomToolbar,
+            event: CustomEvent,
+            month: {
+              dateHeader: CustomDateHeader
             }
-          }
-        }}
-        selectable={true}
-      />
+          }}
+          culture="ja"
+          messages={{
+            next: "次",
+            previous: "前",
+            today: "今日",
+            month: "月",
+            week: "週",
+            day: "日",
+            agenda: "一覧",
+            noEventsInRange: "なし",
+            showMore: (count) => `+${count}`
+          }}
+          onSelectSlot={({ start, action }) => {
+            if (action === 'click') {
+              const dayEvents = filteredEvents.filter(e => 
+                e.start.getDate() === start.getDate() && 
+                e.start.getMonth() === start.getMonth() && 
+                e.start.getFullYear() === start.getFullYear()
+              );
+              
+              // イベントを時間順にソート
+              dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+              if (dayEvents.length >= 1) {
+                setSelectedDay(start);
+                setSelectedDayEvents(dayEvents);
+              }
+            }
+          }}
+          selectable={true}
+        />
+      </div>
+
+      {/* 右側：当月の予約リスト */}
+      <div className="w-full lg:w-[320px] xl:w-[360px] bg-white dark:bg-zinc-950 rounded-xl border shadow-sm flex flex-col overflow-hidden shrink-0 max-h-[420px] lg:max-h-none">
+        <div className="px-4 py-3 border-b bg-gray-50/80 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-[var(--salon-purple)]" />
+            <h3 className="text-sm font-black text-gray-800">
+              {format(date, "yyyy年M月", { locale: ja })}の予約一覧
+            </h3>
+          </div>
+          <Badge variant="secondary" className="font-bold text-xs bg-white border">
+            {currentMonthEvents.length}件
+          </Badge>
+        </div>
+
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          {currentMonthEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <p className="text-xs font-bold">この月の予約はありません</p>
+            </div>
+          ) : (
+            currentMonthEvents.map((event) => {
+              const t = event.resource;
+              const staffId = t.staff?.id || "default";
+              const isCancelled = t.status === "キャンセル";
+
+              let dotColor = "bg-purple-500";
+              if (isCancelled) dotColor = "bg-red-500";
+              else if (staffId === "280b61fe-3b23-44ab-91d0-08916f07c88f") dotColor = "bg-sky-500";
+              else if (staffId === "377e02bb-7aea-4eb7-9328-ee9d57ec85e1") dotColor = "bg-green-500";
+
+              const dayOfWeek = event.start.getDay();
+              const isHoliday = !!JapaneseHolidays.isHoliday(event.start);
+              const dateColor = isHoliday || dayOfWeek === 0
+                ? "text-red-500"
+                : dayOfWeek === 6
+                  ? "text-blue-500"
+                  : "text-gray-700";
+
+              return (
+                <div
+                  key={event.id}
+                  onClick={() => handleSelectEvent(event)}
+                  className={cn(
+                    "flex items-center justify-between px-3.5 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer",
+                    isCancelled ? "opacity-50 bg-red-50/20" : "",
+                    t.isPast && !isCancelled ? "opacity-75" : ""
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {/* 日時 */}
+                    <div className="flex items-baseline gap-1.5 shrink-0 w-[108px]">
+                      <span className={cn("text-xs font-black", dateColor)}>
+                        {format(event.start, "M/d(E)", { locale: ja })}
+                      </span>
+                      <span className="text-xs font-bold text-gray-500 font-mono">
+                        {t.visit_time ? t.visit_time.substring(0, 5) : "--:--"}
+                      </span>
+                    </div>
+
+                    {/* スタッフ色ドット + お客様名 */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0", dotColor)} />
+                      <span className={cn(
+                        "text-xs font-black truncate",
+                        t.isUnfinished ? "text-orange-600" : "text-gray-800",
+                        isCancelled ? "line-through text-gray-400" : ""
+                      )}>
+                        {t.customers?.name || "未登録"} 様
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ステータスバッジ（未入力・キャンセル時のみ控えめに表示） */}
+                  {t.isUnfinished && (
+                    <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded shrink-0 ml-1">
+                      未入力
+                    </span>
+                  )}
+                  {isCancelled && (
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded shrink-0 ml-1">
+                      キャン
+                    </span>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
 
       {/* 同日複数予約の一覧ダイアログ */}
       <Dialog open={!!selectedDayEvents} onOpenChange={(open) => { if (!open) setSelectedDayEvents(null); }}>
