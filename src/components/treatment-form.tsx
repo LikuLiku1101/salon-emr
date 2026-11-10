@@ -255,6 +255,14 @@ export default function TreatmentForm({
 
   const [details, setDetails] = useState<Record<string, Omit<TreatmentDetail, 'body_part'>>>(initialDetailsState);
 
+  // 予約時の内容から、コースまたは部位を初期化
+  const [bookedCourse, setBookedCourse] = useState<string | null>(
+    COURSES[treatment.reserved_content] ? treatment.reserved_content : null
+  );
+  const [bookedPoints, setBookedPoints] = useState<string[]>(
+    COURSES[treatment.reserved_content] ? [] : (treatment.reserved_content ? treatment.reserved_content.split("、") : [])
+  );
+
   useEffect(() => {
     let baseTotal = 0;
     
@@ -262,28 +270,45 @@ export default function TreatmentForm({
     if (selectedCampaign && CAMPAIGNS[selectedCampaign]) {
        baseTotal = CAMPAIGNS[selectedCampaign];
     } else {
-      // 「一括支払い済み」の場合、セット・ポイントに関わらず基本0円。
+      // 「一括支払い済み」の場合、コース分は0円。コース外の追加ポイントのみ加算。
       if (paymentStatus === '一括支払い済み') {
-        Object.keys(details).forEach(part => {
-          const data = details[part];
-          if (data && (data.power_level || "").trim() !== "") {
+        const courseParts = bookedCourse ? (COURSES[bookedCourse] || []) : [];
+        bookedPoints.forEach(part => {
+          if (!courseParts.includes(part)) {
             baseTotal += PART_CATEGORIES[part] || 0;
           }
         });
       }
       // 1. 本日一括支払いの場合（セット料金を加算）
-      else if (paymentStatus === '本日一括支払い' && newSelectedSet && newSetInstallments) {
-        const setPrice = SET_PRICING[newSelectedSet]?.[newSetInstallments] || 0;
-        baseTotal += setPrice;
+      else if (paymentStatus === '本日一括支払い') {
+        const targetSet = newSelectedSet || bookedCourse || "";
+        if (targetSet && newSetInstallments) {
+          const setPrice = SET_PRICING[targetSet]?.[newSetInstallments] || 0;
+          baseTotal += setPrice;
+        }
       } 
-      // 2. 都度払いの場合（処理された各部位の料金を加算）
-      else if (paymentStatus === '都度') {
-        Object.keys(details).forEach(part => {
-          const data = details[part];
-          if (data && (data.power_level || "").trim() !== "") {
-            baseTotal += PART_CATEGORIES[part] || 0;
-          }
-        });
+      // 2. 都度払い（または支払い状況が未選択）の場合：コース料金（1回分）＋コース外の追加ポイント料金（どちらも未選択なら出力表の入力部位から計算）
+      else {
+        const courseParts = bookedCourse ? (COURSES[bookedCourse] || []) : [];
+        if (bookedCourse) {
+          baseTotal += SET_PRICING[bookedCourse]?.["1"] || 0;
+        }
+
+        if (bookedPoints.length > 0) {
+          bookedPoints.forEach(part => {
+            if (!courseParts.includes(part)) {
+              baseTotal += PART_CATEGORIES[part] || 0;
+            }
+          });
+        } else if (!bookedCourse) {
+          // コースもポイントも選ばれていない場合は、出力表に入力された部位から計算
+          Object.keys(details).forEach(part => {
+            const data = details[part];
+            if (data && (data.power_level || "").trim() !== "") {
+              baseTotal += PART_CATEGORIES[part] || 0;
+            }
+          });
+        }
       }
 
       // 3. 女性割引（10%オフ）※端数切り捨て
@@ -296,21 +321,11 @@ export default function TreatmentForm({
     if (hasShaving) baseTotal += 1500;
     if (hasAnesthesia) baseTotal += 2200;
 
-    // 変更時のみステート更新（手動編集されていない場合のみ）
-    if (baseTotal > 0 || paymentStatus === '一括支払い済み' || paymentStatus === '本日一括支払い' || paymentStatus === '都度') {
-       if (!isAmountManuallyEdited) {
-          setPaymentAmount(baseTotal.toString());
-       }
+    // 手動で金額欄を直接書き換えていない限り、常に最新の金額を反映
+    if (!isAmountManuallyEdited) {
+      setPaymentAmount(baseTotal.toString());
     }
-  }, [paymentStatus, newSelectedSet, newSetInstallments, details, isFemale, isAmountManuallyEdited, selectedCampaign, hasShaving, hasAnesthesia]);
-
-  // 予約時の内容から、コースまたは部位を初期化
-  const [bookedCourse, setBookedCourse] = useState<string | null>(
-    COURSES[treatment.reserved_content] ? treatment.reserved_content : null
-  );
-  const [bookedPoints, setBookedPoints] = useState<string[]>(
-    COURSES[treatment.reserved_content] ? [] : (treatment.reserved_content ? treatment.reserved_content.split("、") : [])
-  );
+  }, [paymentStatus, newSelectedSet, newSetInstallments, bookedCourse, bookedPoints, details, isFemale, isAmountManuallyEdited, selectedCampaign, hasShaving, hasAnesthesia]);
 
   const [visitTime, setVisitTime] = useState(treatment.visit_time ? treatment.visit_time.substring(0, 5) : "");
 
@@ -334,16 +349,44 @@ export default function TreatmentForm({
 
 
 
-  // コースの選択（トグル - 単一選択）
+  // コースの選択（トグル - 単一選択）＋出力表の選択部位も連動＋金額を再計算
   const selectCourse = (courseName: string) => {
-    setBookedCourse(prev => (prev === courseName ? null : courseName));
+    const nextCourse = bookedCourse === courseName ? null : courseName;
+    setBookedCourse(nextCourse);
+    if (nextCourse && paymentStatus === '本日一括支払い') {
+      setNewSelectedSet(nextCourse);
+    }
+    setIsAmountManuallyEdited(false);
+
+    // 出力表の選択ボタン（紫色）もコース＋ポイントに合わせて連動更新
+    const nextSelected = new Set<string>(bookedPoints);
+    if (nextCourse && COURSES[nextCourse]) {
+      COURSES[nextCourse].forEach(p => nextSelected.add(p));
+    }
+    setSelectedParts(Array.from(nextSelected));
   };
 
-  // ポイントの選択（複数選択）
+  // ポイントの選択（複数選択）＋出力表の選択部位も連動＋金額を再計算
   const togglePoint = (part: string) => {
-    setBookedPoints(prev => 
-      prev.includes(part) ? prev.filter(p => p !== part) : [...prev, part]
-    );
+    const isRemoving = bookedPoints.includes(part);
+    const nextPoints = isRemoving
+      ? bookedPoints.filter(p => p !== part)
+      : [...bookedPoints, part];
+    setBookedPoints(nextPoints);
+    setIsAmountManuallyEdited(false);
+
+    setSelectedParts(prev => {
+      if (isRemoving) {
+        // コースに含まれている部位でなければ出力表の選択からも外す
+        const courseParts = bookedCourse ? (COURSES[bookedCourse] || []) : [];
+        if (!courseParts.includes(part)) {
+          return prev.filter(p => p !== part);
+        }
+        return prev;
+      } else {
+        return prev.includes(part) ? prev : [...prev, part];
+      }
+    });
   };
 
   // 表へ反映ボタンを押した時の処理
@@ -1244,6 +1287,9 @@ export default function TreatmentForm({
                       type="button"
                       onClick={() => {
                         setPaymentStatus(status);
+                        if (status === '本日一括支払い' && !newSelectedSet && bookedCourse) {
+                          setNewSelectedSet(bookedCourse);
+                        }
                         setIsAmountManuallyEdited(false); // 状況を変えたら自動計算を復活させる
                       }}
                       className={cn(
