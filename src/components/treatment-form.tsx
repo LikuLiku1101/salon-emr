@@ -57,6 +57,7 @@ type VisitInfo = {
   contractVisitCount: number | null;
   contractName: string | undefined;
   contractInstallments: number | undefined;
+  contractTotalAmount?: number | undefined;
   lastVisitDate: string | null;
   lastVisitId: string | null;
 };
@@ -192,7 +193,10 @@ export default function TreatmentForm({
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // 新規追加フィールドの状態
-  const [paymentStatus, setPaymentStatus] = useState<string>(treatment.payment_status ?? "");
+  const hasActiveContract = !!(visitInfo.contractTotalAmount && visitInfo.contractInstallments);
+  const [paymentStatus, setPaymentStatus] = useState<string>(
+    treatment.payment_status || (hasActiveContract ? "一括支払い済み" : "")
+  );
   const [paymentMethod, setPaymentMethod] = useState<string>(treatment.payment_method ?? "");
   const [paymentAmount, setPaymentAmount] = useState<string>(treatment.payment_amount?.toString() ?? "");
   const [handpieceIpl, setHandpieceIpl] = useState<string>(treatment.handpiece_ipl_count?.toString() ?? "");
@@ -270,14 +274,32 @@ export default function TreatmentForm({
     if (selectedCampaign && CAMPAIGNS[selectedCampaign]) {
        baseTotal = CAMPAIGNS[selectedCampaign];
     } else {
-      // 「一括支払い済み」の場合、コース分は0円。コース外の追加ポイントのみ加算。
+      // 「一括支払い済み」の場合、既に支払った契約総額÷回数の1回あたり金額（＋コース外の追加ポイントがあれば加算）
       if (paymentStatus === '一括支払い済み') {
+        const contractTotal = visitInfo.contractTotalAmount ?? treatment.contracts?.total_amount ?? 0;
+        const contractInst = visitInfo.contractInstallments ?? treatment.contracts?.installments ?? 1;
+        let perVisitAmount = 0;
+
+        if (contractTotal > 0 && contractInst > 0) {
+          perVisitAmount = Math.floor(contractTotal / contractInst);
+        } else if (bookedCourse && visitInfo.contractInstallments) {
+          // 万が一 total_amount が未記録の場合はコース料金表から算出
+          const fallbackTotal = SET_PRICING[bookedCourse]?.[String(visitInfo.contractInstallments)] || 0;
+          perVisitAmount = Math.floor(fallbackTotal / visitInfo.contractInstallments);
+        }
+
         const courseParts = bookedCourse ? (COURSES[bookedCourse] || []) : [];
+        let extraPointsTotal = 0;
         bookedPoints.forEach(part => {
           if (!courseParts.includes(part)) {
-            baseTotal += PART_CATEGORIES[part] || 0;
+            extraPointsTotal += PART_CATEGORIES[part] || 0;
           }
         });
+        if (isFemale && extraPointsTotal > 0) {
+          extraPointsTotal = Math.floor(extraPointsTotal * 0.9);
+        }
+
+        baseTotal = perVisitAmount + extraPointsTotal;
       }
       // 1. 本日一括支払いの場合（セット料金を加算）
       else if (paymentStatus === '本日一括支払い') {
@@ -311,8 +333,8 @@ export default function TreatmentForm({
         }
       }
 
-      // 3. 女性割引（10%オフ）※端数切り捨て
-      if (isFemale && baseTotal > 0) {
+      // 3. 女性割引（10%オフ）※端数切り捨て（一括支払い済みの契約単価は既に割引後のため除外）
+      if (isFemale && baseTotal > 0 && paymentStatus !== '一括支払い済み') {
         baseTotal = Math.floor(baseTotal * 0.9);
       }
     }
@@ -325,7 +347,7 @@ export default function TreatmentForm({
     if (!isAmountManuallyEdited) {
       setPaymentAmount(baseTotal.toString());
     }
-  }, [paymentStatus, newSelectedSet, newSetInstallments, bookedCourse, bookedPoints, details, isFemale, isAmountManuallyEdited, selectedCampaign, hasShaving, hasAnesthesia]);
+  }, [paymentStatus, newSelectedSet, newSetInstallments, bookedCourse, bookedPoints, details, isFemale, isAmountManuallyEdited, selectedCampaign, hasShaving, hasAnesthesia, visitInfo.contractTotalAmount, visitInfo.contractInstallments]);
 
   const [visitTime, setVisitTime] = useState(treatment.visit_time ? treatment.visit_time.substring(0, 5) : "");
 
