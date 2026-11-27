@@ -385,7 +385,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
   };
 
   return (
-    <div className="flex-1 w-full flex flex-col lg:flex-row gap-3 relative overflow-y-auto lg:overflow-hidden min-h-[600px]">
+    <div className="flex-1 w-full flex flex-col lg:flex-row gap-3 relative lg:overflow-hidden">
       {isLoading && <LoadingSpinner />}
       <style jsx global>{`
         /* TimeTree風カスタム設定 */
@@ -438,7 +438,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       `}</style>
 
       {/* 左側：カレンダーエリア */}
-      <div className="flex-1 bg-white dark:bg-zinc-950 p-1 sm:p-2 rounded-xl border shadow-sm flex flex-col overflow-hidden min-h-[520px] shrink-0 lg:shrink">
+      <div className="flex-1 bg-white dark:bg-zinc-950 p-1 sm:p-2 rounded-xl border shadow-sm flex flex-col overflow-hidden h-[540px] sm:h-[620px] lg:h-auto shrink-0 lg:shrink">
         <Calendar
           localizer={localizer}
           events={filteredEvents}
@@ -493,8 +493,8 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         />
       </div>
 
-      {/* 右側：当月の予約リスト */}
-      <div className="w-full lg:w-[320px] xl:w-[360px] bg-white dark:bg-zinc-950 rounded-xl border shadow-sm flex flex-col overflow-hidden shrink-0 max-h-[420px] lg:max-h-none">
+      {/* 右側（スマホでは下側）：当月の予約リスト */}
+      <div className="w-full lg:w-[320px] xl:w-[360px] bg-white dark:bg-zinc-950 rounded-xl border shadow-sm flex flex-col lg:overflow-hidden shrink-0">
         <div className="px-4 py-3 border-b bg-gray-50/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-[var(--salon-purple)]" />
@@ -507,7 +507,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
           </Badge>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <div className="lg:flex-1 lg:overflow-y-auto divide-y divide-gray-100">
           {currentMonthEvents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <p className="text-xs font-bold">この月の予約はありません</p>
