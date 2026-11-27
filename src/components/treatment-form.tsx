@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTreatmentDetails, sendTreatmentLineMessage } from "@/app/treatments/[id]/actions";
+import { deleteTreatment } from "@/app/customers/[id]/actions";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -218,6 +219,30 @@ export default function TreatmentForm({
   const [isUploading, setIsUploading] = useState(false);
   const supabaseBrowser = createClient();
   const [isLineSending, setIsLineSending] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteTreatment = async () => {
+    const dateLabel = currentVisitDate ? format(new Date(currentVisitDate), "yyyy年M月d日") : "";
+    if (!window.confirm(`${dateLabel}（${treatment.customers?.name || "お客様"}様）のカルテを削除してもよろしいですか？\nこの操作は取り消せません。`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteTreatment(treatment.id, treatment.customer_id);
+      if (result.success) {
+        toast.success("カルテを削除しました");
+        window.location.href = "/treatments";
+      } else {
+        toast.error(result.error || "削除に失敗しました");
+        setIsDeleting(false);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("削除中にエラーが発生しました");
+      setIsDeleting(false);
+    }
+  };
 
   const handleLineMessage = async () => {
     if (!treatment.customers?.line_user_id) {
@@ -577,7 +602,7 @@ export default function TreatmentForm({
         </div>
       </div>
 
-      {isSubmitting && <LoadingSpinner />}
+      {(isSubmitting || isDeleting) && <LoadingSpinner />}
 
       <div className="px-4 py-6 space-y-8">
         
@@ -796,7 +821,17 @@ export default function TreatmentForm({
         {!isEditMode ? (
           /* ================== 閲覧モード (View Mode) ================== */
           <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button 
+                onClick={handleDeleteTreatment} 
+                disabled={isDeleting}
+                variant="outline" 
+                size="sm"
+                className="font-bold border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                {isDeleting ? "削除中..." : "このカルテを削除"}
+              </Button>
               <Button 
                 onClick={handleLineMessage} 
                 disabled={isLineSending || !treatment.customers?.line_user_id}
@@ -1556,7 +1591,7 @@ export default function TreatmentForm({
             <Button 
               type="submit" 
               className="w-full h-14 text-lg font-bold shadow-lg bg-[var(--salon-magenta)] hover:bg-[var(--salon-magenta)]/90 text-white border-0" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || isDeleting}
             >
               {isSubmitting ? "保存中..." : (
                 <>
@@ -1565,8 +1600,22 @@ export default function TreatmentForm({
                 </>
               )}
             </Button>
-              </div>
-            </form>
+          </div>
+
+          {/* カルテ削除ボタン（入力モード下部） */}
+          <div className="pt-4 flex justify-center">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSubmitting || isDeleting}
+              onClick={handleDeleteTreatment}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50 font-bold text-sm"
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              {isDeleting ? "削除中..." : "このカルテを削除する"}
+            </Button>
+          </div>
+        </form>
           </>
         )}
       </div>
