@@ -46,6 +46,7 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
     if (!treatments) return [];
     
     const now = new Date();
+    const todayStr = format(now, "yyyy-MM-dd");
 
     return treatments.map((t) => {
       const visitDateStr = t.visit_date;
@@ -58,6 +59,10 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       // 施術内容の構築
       let displayContent = "";
       const isPast = start < now;
+      const isToday = visitDateStr === todayStr;
+      // 消化判定: カルテの入力（施術詳細または支払い状況）が完了しているか、過去の日時であるか
+      const hasInput = (t.treatment_details && t.treatment_details.length > 0) || !!t.payment_status;
+      const isCompleted = t.status !== 'キャンセル' && (hasInput || (isPast && !isToday));
       const courseName = t.contracts?.course_name;
       const reserved = t.reserved_content;
 
@@ -97,6 +102,8 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
         resource: {
           ...t,
           isPast,
+          isToday,
+          isCompleted,
           isUnfinished,
           status: t.status
         },
@@ -272,8 +279,14 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                 }}
                 className={cn(
                   "flex items-center gap-1 rounded px-1 py-[3px] cursor-pointer hover:bg-black/5 transition-colors w-full text-left",
-                  isCancelled ? "opacity-50" : "",
-                  event.resource?.isPast ? "opacity-70 bg-gray-50/50" : "bg-white shadow-sm border border-gray-100"
+                  isCancelled ? "opacity-30 line-through" : "",
+                  event.resource?.isCompleted
+                    ? "opacity-35 bg-gray-50/40"
+                    : event.resource?.isToday
+                      ? "bg-[var(--salon-purple)]/10 ring-1 ring-[var(--salon-purple)]/40 shadow-sm"
+                      : event.resource?.isPast
+                        ? "opacity-40 bg-gray-50/40"
+                        : "bg-white shadow-sm border border-gray-100"
                 )}
               >
                 <div className={`w-1.5 h-1.5 shrink-0 rounded-full ${dotColor}`} />
@@ -504,6 +517,8 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
               const t = event.resource;
               const staffId = t.staff?.id || "default";
               const isCancelled = t.status === "キャンセル";
+              const isToday = t.isToday;
+              const isCompleted = t.isCompleted;
 
               let dotColor = "bg-purple-500";
               if (isCancelled) dotColor = "bg-red-500";
@@ -523,18 +538,25 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                   key={event.id}
                   onClick={() => handleSelectEvent(event)}
                   className={cn(
-                    "flex items-center justify-between px-3.5 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer",
-                    isCancelled ? "opacity-50 bg-red-50/20" : "",
-                    t.isPast && !isCancelled ? "opacity-75" : ""
+                    "flex items-center justify-between px-3.5 py-2.5 transition-colors cursor-pointer",
+                    isCancelled
+                      ? "opacity-30 bg-red-50/20 hover:opacity-50"
+                      : isToday && !isCompleted
+                        ? "bg-[var(--salon-purple)]/[0.08] border-l-4 border-l-[var(--salon-purple)] pl-2.5 shadow-sm hover:bg-[var(--salon-purple)]/[0.12]"
+                        : isToday && isCompleted
+                          ? "bg-[var(--salon-purple)]/[0.03] border-l-4 border-l-[var(--salon-purple)]/40 pl-2.5 opacity-45 hover:opacity-70"
+                          : isCompleted || t.isPast
+                            ? "opacity-30 bg-gray-50/40 hover:opacity-60"
+                            : "hover:bg-gray-50"
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* 日時 */}
                     <div className="flex items-baseline gap-1.5 shrink-0 w-[108px]">
-                      <span className={cn("text-xs font-black", dateColor)}>
+                      <span className={cn("text-xs font-black", isToday && !isCompleted ? "text-[var(--salon-purple)]" : dateColor)}>
                         {format(event.start, "M/d(E)", { locale: ja })}
                       </span>
-                      <span className="text-xs font-bold text-gray-500 font-mono">
+                      <span className={cn("text-xs font-bold font-mono", isToday && !isCompleted ? "text-[var(--salon-purple)] font-black" : "text-gray-500")}>
                         {t.visit_time ? t.visit_time.substring(0, 5) : "--:--"}
                       </span>
                     </div>
@@ -544,7 +566,11 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                       <span className={cn("w-2 h-2 rounded-full shrink-0", dotColor)} />
                       <span className={cn(
                         "text-xs font-black truncate",
-                        t.isUnfinished ? "text-orange-600" : "text-gray-800",
+                        t.isUnfinished
+                          ? "text-orange-600"
+                          : isToday && !isCompleted
+                            ? "text-[var(--salon-purple)] text-[13px]"
+                            : "text-gray-800",
                         isCancelled ? "line-through text-gray-400" : ""
                       )}>
                         {t.customers?.name || "未登録"} 様
@@ -552,7 +578,17 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
                     </div>
                   </div>
 
-                  {/* ステータスバッジ（未入力・キャンセル時のみ控えめに表示） */}
+                  {/* ステータスバッジ（今日・未入力・キャンセル時） */}
+                  {isToday && !isCancelled && !isCompleted && (
+                    <span className="text-[10px] font-black text-white bg-[var(--salon-purple)] px-2 py-0.5 rounded-full shrink-0 ml-1 shadow-sm">
+                      本日
+                    </span>
+                  )}
+                  {isToday && !isCancelled && isCompleted && (
+                    <span className="text-[10px] font-bold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded shrink-0 ml-1">
+                      本日済
+                    </span>
+                  )}
                   {t.isUnfinished && (
                     <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded shrink-0 ml-1">
                       未入力
