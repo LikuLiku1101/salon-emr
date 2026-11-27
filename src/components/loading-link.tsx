@@ -23,6 +23,10 @@ export function LoadingLink({ href, children, className }: LoadingLinkProps) {
   }, [pathname]);
 
   const handleClick = (e: React.MouseEvent) => {
+    const targetPath = href.split("?")[0];
+    if (targetPath === pathname) {
+      return;
+    }
     setIsLoading(true);
   };
 

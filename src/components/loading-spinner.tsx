@@ -1,13 +1,11 @@
-"use client";
-
 import React from 'react';
 
 export function LoadingSpinner() {
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/85 backdrop-blur-md animate-in fade-in duration-150">
-      {/* 画面上部のプログレスバー（光が走るアニメーション） */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-purple-100/60 overflow-hidden">
-        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[var(--salon-purple)] to-transparent animate-[shimmer_1.2s_infinite_ease-in-out]" />
+      {/* 画面上部のプログレスバー */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-purple-100/80 overflow-hidden">
+        <div className="h-full w-full bg-gradient-to-r from-[var(--salon-purple)]/20 via-[var(--salon-purple)] to-[var(--salon-purple)]/20 animate-pulse" />
       </div>
 
       {/* 中央のミニマルでモダンなスピナー */}
@@ -36,13 +34,6 @@ export function LoadingSpinner() {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-120%); }
-          100% { transform: translateX(320%); }
-        }
-      `}</style>
     </div>
   );
 }
