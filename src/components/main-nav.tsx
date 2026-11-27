@@ -1,9 +1,11 @@
 "use client";
 
 import { LoadingLink } from "@/components/loading-link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { LayoutDashboard, Users, CalendarDays, User, LogOut, TrendingUp } from "lucide-react";
 import { logout } from "@/app/login/actions";
+import { createClient } from "@/utils/supabase/client";
 
 const navItems = [
   { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
@@ -14,6 +16,29 @@ const navItems = [
 
 export function MainNav({ staffName }: { staffName?: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // バックグラウンド復帰時や定期操作時にセッション（トークン）を自動更新して30日間ログインを維持
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/login");
+      }
+    });
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        supabase.auth.getSession();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [router]);
 
   return (
     <nav className="border-b bg-white dark:bg-zinc-950 px-4 sm:px-6 py-3 sm:py-4 shadow-sm">

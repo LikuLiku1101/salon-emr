@@ -15,10 +15,19 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
+            const THIRTY_DAYS = 60 * 60 * 24 * 30
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, {
                 ...options,
-                maxAge: 60 * 60 * 24 * 30, // 30 days
+                path: '/',
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                ...(value
+                  ? {
+                      maxAge: THIRTY_DAYS,
+                      expires: new Date(Date.now() + THIRTY_DAYS * 1000),
+                    }
+                  : {}),
               })
             )
           } catch {

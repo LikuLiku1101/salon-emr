@@ -438,13 +438,13 @@ export default function TreatmentsCalendar({ treatments }: { treatments: any[] }
       `}</style>
 
       {/* 左側：カレンダーエリア */}
-      <div className="flex-1 bg-white dark:bg-zinc-950 p-1 sm:p-2 rounded-xl border shadow-sm flex flex-col overflow-hidden h-[540px] sm:h-[620px] lg:h-auto shrink-0 lg:shrink">
+      <div className="w-full lg:flex-1 bg-white dark:bg-zinc-950 p-1 sm:p-2 rounded-xl border shadow-sm flex flex-col overflow-hidden h-[540px] sm:h-[620px] lg:h-full shrink-0">
         <Calendar
           localizer={localizer}
           events={filteredEvents}
           startAccessor="start"
           endAccessor="end"
-          style={{ flex: 1 }}
+          style={{ flex: 1, minHeight: "480px" }}
           views={["month", "week", "day"]}
           view={view}
           date={date}

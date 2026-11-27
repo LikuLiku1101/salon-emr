@@ -15,14 +15,23 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          const THIRTY_DAYS = 60 * 60 * 24 * 30
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, {
               ...options,
-              maxAge: 60 * 60 * 24 * 30, // 30 days
+              path: '/',
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production',
+              ...(value
+                ? {
+                    maxAge: THIRTY_DAYS,
+                    expires: new Date(Date.now() + THIRTY_DAYS * 1000),
+                  }
+                : {}),
             })
           )
         },
